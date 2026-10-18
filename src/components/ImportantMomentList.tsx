@@ -10,8 +10,13 @@ interface ImportantMomentListProps {
   editingIds: ReadonlySet<string>
   focusId: string | null
   activeId: string | null
-  canPlay: boolean
-  onPlay: (moment: ImportantMoment) => void
+  selectedId: string | null
+  playingRangeId: string | null
+  downloadingId: string | null
+  hasAudio: boolean
+  onToggleRange: (moment: ImportantMoment) => void
+  onAdjust: (moment: ImportantMoment) => void
+  onDownload: (moment: ImportantMoment) => void
   onEdit: (moment: ImportantMoment) => void
   onSave: (moment: ImportantMoment, values: Pick<ImportantMoment, 'name' | 'observation'>) => void
   onCancel: (moment: ImportantMoment) => void
@@ -24,8 +29,13 @@ export function ImportantMomentList({
   editingIds,
   focusId,
   activeId,
-  canPlay,
-  onPlay,
+  selectedId,
+  playingRangeId,
+  downloadingId,
+  hasAudio,
+  onToggleRange,
+  onAdjust,
+  onDownload,
   onEdit,
   onSave,
   onCancel,
@@ -38,7 +48,7 @@ export function ImportantMomentList({
           <Bookmark className="size-4 text-muted-foreground" />
           Momentos importantes
         </CardTitle>
-        <CardDescription>Em ordem cronológica. Clique no tempo para ouvir a partir dele.</CardDescription>
+        <CardDescription>Em ordem cronológica. Clique no tempo para ouvir o trecho de cada momento.</CardDescription>
         <CardAction>
           <Badge variant="secondary" aria-label={`${moments.length} marcações`}>
             {moments.length}
@@ -72,9 +82,14 @@ export function ImportantMomentList({
                 index={index}
                 isEditing={editingIds.has(moment.id)}
                 isActive={moment.id === activeId}
+                isSelected={moment.id === selectedId}
+                isPlayingRange={moment.id === playingRangeId}
+                isDownloading={moment.id === downloadingId}
                 autoFocus={moment.id === focusId}
-                canPlay={canPlay}
-                onPlay={() => onPlay(moment)}
+                hasAudio={hasAudio}
+                onToggleRange={() => onToggleRange(moment)}
+                onAdjust={() => onAdjust(moment)}
+                onDownload={() => onDownload(moment)}
                 onEdit={() => onEdit(moment)}
                 onSave={(values) => onSave(moment, values)}
                 onCancel={() => onCancel(moment)}

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Bookmark, ShieldCheck } from 'lucide-react'
+import { ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AppHeader } from '@/components/AppHeader'
@@ -11,14 +10,17 @@ import { ConfirmDialog, type ConfirmOptions } from '@/components/ConfirmDialog'
 import { ImportExportControls } from '@/components/ImportExportControls'
 import { ImportProjectDialog } from '@/components/ImportProjectDialog'
 import { ImportantMomentList } from '@/components/ImportantMomentList'
+import { MarkMomentButton } from '@/components/MarkMomentButton'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { useBeforeUnload } from '@/hooks/useBeforeUnload'
 import { useIsVisible } from '@/hooks/useIsVisible'
 import { useObjectUrl } from '@/hooks/useObjectUrl'
+import { useWaveform } from '@/hooks/useWaveform'
 import { useProject } from '@/hooks/useProject'
 import { formatTime } from '@/lib/time'
 import { cn } from '@/lib/utils'
+import { ClipExportError, clipFileName, exportAudioClip } from '@/services/audioClipService'
 import { extensionForMimeType, probeAudio } from '@/services/audioService'
 import {
   ExportError,
@@ -29,6 +31,9 @@ import {
 } from '@/services/projectExportService'
 import type { ImportPreview } from '@/services/projectImportService'
 import type { ImportantMoment, RecordingResult } from '@/types/project'
+
+/** Tempo em que o botão de marcação fica bloqueado após cada clique. */
+const MARK_COOLDOWN_MS = 2000
 
 function pluralize(count: number, singular: string, plural: string) {
   return `${count} ${count === 1 ? singular : plural}`
@@ -49,6 +54,7 @@ export default function App() {
     loadImported,
     addMoment,
     updateMoment,
+    updateMomentRange,
     deleteMoment,
     markSaved,
   } = useProject()
@@ -60,6 +66,11 @@ export default function App() {
   const [confirm, setConfirm] = useState<ConfirmOptions | null>(null)
   const [editingIds, setEditingIds] = useState<ReadonlySet<string>>(new Set())
   const [focusId, setFocusId] = useState<string | null>(null)
+  const [selectedMomentId, setSelectedMomentId] = useState<string | null>(null)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [isMarkLocked, setIsMarkLocked] = useState(false)
+  const markLockTimerRef = useRef<number | null>(null)
+  const playerCardRef = useRef<HTMLDivElement>(null)
 
   const handleRecordingComplete = useCallback(
     async ({ blob, mimeType, elapsedSeconds }: RecordingResult) => {
@@ -93,6 +104,8 @@ export default function App() {
   const audioUrl = useObjectUrl(audio?.blob ?? null)
   const player = useAudioPlayer(audioUrl, audio?.durationSeconds ?? null)
   const { audioRef, currentTime: playbackTime, duration: playbackDuration } = player
+  const waveform = useWaveform(audio?.blob ?? null, audio?.durationSeconds ?? null)
+  const selectedMoment = moments.find((moment) => moment.id === selectedMomentId) ?? null
 
   const isRecorderBusy = recorder.isActive || recorder.status === 'requesting' || isProcessing
   const canMark = recorder.isActive || (audio !== null && !isProcessing)
@@ -106,6 +119,7 @@ export default function App() {
       player.pause()
       clearContent()
       setEditingIds(new Set())
+      setSelectedMomentId(null)
       void recorder.start()
     }
     if (!hasContent) {
@@ -134,6 +148,7 @@ export default function App() {
         recorder.reset()
         clearContent()
         setEditingIds(new Set())
+        setSelectedMomentId(null)
         toast('Projeto descartado')
       },
     })
@@ -141,14 +156,34 @@ export default function App() {
 
   /* ---------- Marcações ---------- */
 
+  // Libera o temporizador do bloqueio se o componente for desmontado.
+  useEffect(
+    () => () => {
+      if (markLockTimerRef.current !== null) window.clearTimeout(markLockTimerRef.current)
+    },
+    [],
+  )
+
   const markMoment = useCallback(() => {
-    if (!canMark) return
-    const time = recorder.isActive ? recorder.getElapsedSeconds() : player.getCurrentTime()
-    const id = addMoment(time)
+    if (!canMark || isMarkLocked) return
+    const isRecordingNow = recorder.isActive
+    const time = isRecordingNow ? recorder.getElapsedSeconds() : player.getCurrentTime()
+    // Durante a gravação a duração final ainda é desconhecida; o trecho é ajustado ao finalizar.
+    const duration = isRecordingNow ? null : playbackDuration || audio?.durationSeconds || null
+    const id = addMoment(time, duration)
     setEditingIds((previous) => new Set(previous).add(id))
     setFocusId(id)
+    if (!isRecordingNow) setSelectedMomentId(id)
+
+    // Evita marcações duplicadas por cliques repetidos.
+    setIsMarkLocked(true)
+    markLockTimerRef.current = window.setTimeout(() => {
+      markLockTimerRef.current = null
+      setIsMarkLocked(false)
+    }, MARK_COOLDOWN_MS)
+
     toast(`Momento marcado em ${formatTime(time)}`, { description: 'Dê um nome a ele na lista de momentos.' })
-  }, [addMoment, canMark, player, recorder])
+  }, [addMoment, audio, canMark, isMarkLocked, playbackDuration, player, recorder])
 
   const stopEditing = useCallback((id: string) => {
     setEditingIds((previous) => {
@@ -170,7 +205,10 @@ export default function App() {
     (moment: ImportantMoment) => {
       stopEditing(moment.id)
       // Uma marcação recém-criada que nunca recebeu nome é descartada ao cancelar.
-      if (!moment.name) deleteMoment(moment.id)
+      if (!moment.name) {
+        deleteMoment(moment.id)
+        setSelectedMomentId((current) => (current === moment.id ? null : current))
+      }
     },
     [deleteMoment, stopEditing],
   )
@@ -185,6 +223,7 @@ export default function App() {
         onConfirm: () => {
           deleteMoment(moment.id)
           stopEditing(moment.id)
+          setSelectedMomentId((current) => (current === moment.id ? null : current))
           toast('Marcação excluída')
         },
       })
@@ -196,6 +235,53 @@ export default function App() {
     setEditingIds((previous) => new Set(previous).add(moment.id))
     setFocusId(moment.id)
   }, [])
+
+  /* ---------- Trechos dos momentos ---------- */
+
+  const handleAdjustMoment = useCallback((moment: ImportantMoment) => {
+    setSelectedMomentId(moment.id)
+    // Em telas pequenas o player fica acima da lista: leva o usuário até o editor.
+    const card = playerCardRef.current
+    if (card) {
+      const rect = card.getBoundingClientRect()
+      if (rect.bottom < 0 || rect.top > window.innerHeight * 0.6) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }
+  }, [])
+
+  const handleChangeRange = useCallback(
+    (moment: ImportantMoment, startSeconds: number, endSeconds: number) => {
+      updateMomentRange(moment.id, startSeconds, endSeconds, playbackDuration || audio?.durationSeconds || null)
+    },
+    [audio, playbackDuration, updateMomentRange],
+  )
+
+  const handleToggleRange = useCallback(
+    (moment: ImportantMoment) => player.toggleRange(moment.startSeconds, moment.endSeconds, moment.id),
+    [player],
+  )
+
+  const handleDownloadMoment = useCallback(
+    async (moment: ImportantMoment) => {
+      if (!audio || downloadingId) return
+      setDownloadingId(moment.id)
+      try {
+        const clip = await exportAudioClip(audio.blob, moment.startSeconds, moment.endSeconds)
+        const { base } = getExportFileNames(project)
+        const fileName = clipFileName(base, moment.name, moment.startSeconds)
+        downloadBlob(clip, fileName)
+        toast.success('Trecho baixado', {
+          description: `${fileName}. Os trechos são salvos em WAV, pois cortar o formato original exigiria recodificá-lo.`,
+        })
+      } catch (error) {
+        toast.error(error instanceof ClipExportError ? error.message : 'Não foi possível baixar o trecho.')
+      } finally {
+        setDownloadingId(null)
+      }
+    },
+    [audio, downloadingId, project],
+  )
 
   const activeId = useMemo(() => {
     if (!audio || playbackTime <= 0) return null
@@ -215,6 +301,7 @@ export default function App() {
       recorder.reset()
       loadImported(preview.audio, preview.projectName, preview.moments)
       setEditingIds(new Set())
+      setSelectedMomentId(null)
       setIsImportOpen(false)
       toast.success('Projeto importado', {
         description: preview.moments.length
@@ -340,6 +427,7 @@ export default function App() {
               hasContent={hasContent}
               isProcessing={isProcessing}
               canMark={canMark}
+              isMarkLocked={isMarkLocked}
               markHint={markHint}
               onStart={startRecording}
               onStop={recorder.stop}
@@ -347,7 +435,21 @@ export default function App() {
               onMark={markMoment}
               markButtonRef={markButtonRef}
             />
-            <AudioPlayer player={player} audio={audio} moments={moments} isRecording={recorder.isActive} />
+            <AudioPlayer
+              player={player}
+              audio={audio}
+              moments={moments}
+              waveform={waveform}
+              isRecording={recorder.isActive}
+              selectedMoment={selectedMoment}
+              downloadingId={downloadingId}
+              onSelectMoment={(moment) => setSelectedMomentId(moment.id)}
+              onCloseEditor={() => setSelectedMomentId(null)}
+              onChangeRange={handleChangeRange}
+              onToggleRange={handleToggleRange}
+              onDownloadMoment={(moment) => void handleDownloadMoment(moment)}
+              cardRef={playerCardRef}
+            />
           </div>
 
           <ImportantMomentList
@@ -355,8 +457,13 @@ export default function App() {
             editingIds={editingIds}
             focusId={focusId}
             activeId={activeId}
-            canPlay={audio !== null}
-            onPlay={(moment) => player.playFrom(moment.timeSeconds)}
+            selectedId={selectedMomentId}
+            playingRangeId={player.playingRangeKey}
+            downloadingId={downloadingId}
+            hasAudio={audio !== null}
+            onToggleRange={handleToggleRange}
+            onAdjust={handleAdjustMoment}
+            onDownload={(moment) => void handleDownloadMoment(moment)}
             onEdit={handleEditMoment}
             onSave={handleSaveMoment}
             onCancel={handleCancelMoment}
@@ -376,14 +483,14 @@ export default function App() {
 
         {showFloatingMark && (
           <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/90 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
-            <Button
-              size="lg"
-              className="mx-auto flex h-12 w-full max-w-md rounded-xl bg-highlight text-base font-semibold text-highlight-foreground hover:bg-highlight/90"
+            <MarkMomentButton
+              className="mx-auto flex h-12 w-full max-w-md"
+              disabled={!canMark}
+              locked={isMarkLocked}
               onClick={markMoment}
             >
-              <Bookmark className="size-5" />
               Marcar momento · {formatTime(recorder.elapsedSeconds)}
-            </Button>
+            </MarkMomentButton>
           </div>
         )}
       </div>

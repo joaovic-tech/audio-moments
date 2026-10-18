@@ -1,13 +1,12 @@
 import type { Ref } from 'react'
-import { AlertCircle, Bookmark, CheckCircle2, FileAudio, Loader2, Mic, Pause } from 'lucide-react'
+import { AlertCircle, CheckCircle2, FileAudio, Loader2, Mic, Pause } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Kbd } from '@/components/Kbd'
 import { LevelMeter } from '@/components/LevelMeter'
+import { MarkMomentButton } from '@/components/MarkMomentButton'
 import { RecordingControls } from '@/components/RecordingControls'
 import { defaultProjectName } from '@/lib/fileName'
 import { formatTime } from '@/lib/time'
@@ -27,6 +26,7 @@ interface AudioRecorderProps {
   hasContent: boolean
   isProcessing: boolean
   canMark: boolean
+  isMarkLocked: boolean
   markHint: string
   onStart: () => void
   onStop: () => void
@@ -114,6 +114,7 @@ export function AudioRecorder({
   hasContent,
   isProcessing,
   canMark,
+  isMarkLocked,
   markHint,
   onStart,
   onStop,
@@ -180,18 +181,16 @@ export function AudioRecorder({
         )}
 
         <div className="grid gap-2">
-          <Button
-            ref={markButtonRef}
-            size="lg"
-            className="h-14 w-full rounded-xl bg-highlight text-base font-semibold text-highlight-foreground shadow-sm hover:bg-highlight/90"
+          <MarkMomentButton
+            buttonRef={markButtonRef}
+            className="h-14 w-full"
             disabled={!canMark}
+            locked={isMarkLocked}
             onClick={onMark}
-            aria-keyshortcuts="M"
+            showShortcut
           >
-            <Bookmark className="size-5" />
             Marcar momento importante
-            <Kbd className="ml-1 hidden sm:inline-flex">M</Kbd>
-          </Button>
+          </MarkMomentButton>
           <p className="text-center text-xs text-muted-foreground" aria-live="polite">
             {markHint}
           </p>

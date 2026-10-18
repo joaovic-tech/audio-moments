@@ -1,5 +1,6 @@
 import { getExtension, stripExtension } from '@/lib/fileName'
 import { createMomentId } from '@/lib/id'
+import { clampRange, defaultRange } from '@/lib/momentRange'
 import { roundSeconds } from '@/lib/time'
 import {
   extensionForMimeType,
@@ -9,7 +10,7 @@ import {
   resolveMimeType,
   AudioProbeError,
 } from '@/services/audioService'
-import { PROJECT_FILE_VERSION, type ImportantMoment, type ProjectAudio } from '@/types/project'
+import { SUPPORTED_PROJECT_FILE_VERSIONS, type ImportantMoment, type ProjectAudio } from '@/types/project'
 
 /** Tolerância para marcações ligeiramente além do fim do áudio (arredondamentos). */
 const DURATION_TOLERANCE_SECONDS = 0.5
@@ -78,9 +79,9 @@ export function parseProjectJson(text: string, options: ParseOptions): ParseProj
 
   if (!('version' in data)) {
     errors.push('Campo obrigatório "version" ausente.')
-  } else if (data.version !== PROJECT_FILE_VERSION) {
+  } else if (typeof data.version !== 'number' || !SUPPORTED_PROJECT_FILE_VERSIONS.includes(data.version)) {
     errors.push(
-      `Versão do formato não suportada: ${JSON.stringify(data.version)}. Esta aplicação lê a versão ${PROJECT_FILE_VERSION}.`,
+      `Versão do formato não suportada: ${JSON.stringify(data.version)}. Esta aplicação lê as versões ${SUPPORTED_PROJECT_FILE_VERSIONS.join(' e ')}.`,
     )
   }
 
@@ -170,6 +171,31 @@ export function parseProjectJson(text: string, options: ParseOptions): ParseProj
       warnings.push(`${display}: o campo "observation" não é um texto e foi deixado em branco.`)
     }
 
+    // Trecho: opcional (a versão 1 não o possui). Valores inválidos recebem o trecho padrão.
+    let range = defaultRange(timeSeconds, audioDurationSeconds)
+    const hasStart = raw.startSeconds !== undefined && raw.startSeconds !== null
+    const hasEnd = raw.endSeconds !== undefined && raw.endSeconds !== null
+    if (hasStart || hasEnd) {
+      if (
+        isNonNegativeNumber(raw.startSeconds) &&
+        isNonNegativeNumber(raw.endSeconds) &&
+        raw.startSeconds < raw.endSeconds
+      ) {
+        if (audioDurationSeconds !== null && raw.startSeconds >= audioDurationSeconds) {
+          warnings.push(`${display}: o trecho começa depois do fim do áudio; foi usado o trecho padrão.`)
+        } else {
+          if (audioDurationSeconds !== null && raw.endSeconds - audioDurationSeconds > DURATION_TOLERANCE_SECONDS) {
+            warnings.push(`${display}: o fim do trecho passava da duração do áudio e foi ajustado.`)
+          }
+          range = clampRange(raw.startSeconds, raw.endSeconds, audioDurationSeconds)
+        }
+      } else {
+        warnings.push(
+          `${display}: "startSeconds"/"endSeconds" inválidos (devem ser números com início menor que o fim); foi usado o trecho padrão.`,
+        )
+      }
+    }
+
     let id = typeof raw.id === 'string' ? raw.id.trim() : ''
     if (!id || seenIds.has(id)) {
       if (id) warnings.push(`${display}: identificador duplicado "${id}"; um novo foi gerado.`)
@@ -180,6 +206,7 @@ export function parseProjectJson(text: string, options: ParseOptions): ParseProj
     moments.push({
       id,
       timeSeconds: roundSeconds(timeSeconds),
+      ...range,
       name: name.slice(0, MAX_NAME_LENGTH),
       observation: observation.slice(0, MAX_OBSERVATION_LENGTH),
     })

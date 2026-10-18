@@ -18,7 +18,21 @@ export function useAudioPlayer(src: string | null, fallbackDuration: number | nu
   const [error, setError] = useState<string | null>(null)
   const [playbackRate, setPlaybackRate] = useState<number>(1)
   const fixingDurationRef = useRef(false)
+  /** Instante em que a reprodução de um trecho deve parar. */
+  const stopAtRef = useRef<number | null>(null)
+  /** Identifica o trecho em reprodução (ex.: id do momento). */
+  const [rangeKey, setRangeKey] = useState<string | null>(null)
   const [currentSrc, setCurrentSrc] = useState(src)
+
+  /** Pausa ao chegar ao fim do trecho em reprodução. */
+  const stopAtRangeEnd = (audio: HTMLAudioElement) => {
+    const stopAt = stopAtRef.current
+    if (stopAt !== null && !audio.paused && audio.currentTime >= stopAt) {
+      audio.pause()
+      audio.currentTime = stopAt
+      setCurrentTime(stopAt)
+    }
+  }
 
   // Reinicia o estado quando o áudio muda (ajuste durante a renderização).
   if (src !== currentSrc) {
@@ -28,6 +42,7 @@ export function useAudioPlayer(src: string | null, fallbackDuration: number | nu
     setElementDuration(null)
     setIsReady(false)
     setError(null)
+    setRangeKey(null)
   }
 
   useEffect(() => {
@@ -56,7 +71,9 @@ export function useAudioPlayer(src: string | null, fallbackDuration: number | nu
       }
     }
     const onTimeUpdate = () => {
-      if (!fixingDurationRef.current) setCurrentTime(audio.currentTime)
+      if (fixingDurationRef.current) return
+      setCurrentTime(audio.currentTime)
+      stopAtRangeEnd(audio)
     }
     const onSeeked = () => {
       if (fixingDurationRef.current) {
@@ -71,8 +88,12 @@ export function useAudioPlayer(src: string | null, fallbackDuration: number | nu
       setCurrentTime(audio.currentTime)
     }
     const onPlay = () => setIsPlaying(true)
-    const onPause = () => setIsPlaying(false)
-    const onEnded = () => setIsPlaying(false)
+    const onPause = () => {
+      setIsPlaying(false)
+      stopAtRef.current = null
+      setRangeKey(null)
+    }
+    const onEnded = onPause
     const onRateChange = () => setPlaybackRate(audio.playbackRate)
     const onError = () => {
       if (!audio.getAttribute('src')) return
@@ -108,7 +129,10 @@ export function useAudioPlayer(src: string | null, fallbackDuration: number | nu
     let frame = 0
     const loop = () => {
       const audio = audioRef.current
-      if (audio && !fixingDurationRef.current) setCurrentTime(audio.currentTime)
+      if (audio && !fixingDurationRef.current) {
+        setCurrentTime(audio.currentTime)
+        stopAtRangeEnd(audio)
+      }
       frame = requestAnimationFrame(loop)
     }
     frame = requestAnimationFrame(loop)
@@ -144,6 +168,8 @@ export function useAudioPlayer(src: string | null, fallbackDuration: number | nu
       const max = duration > 0 ? duration : Number.POSITIVE_INFINITY
       const target = Math.min(Math.max(0, time), max)
       fixingDurationRef.current = false
+      stopAtRef.current = null
+      setRangeKey(null)
       audio.currentTime = target
       setCurrentTime(target)
     },
@@ -158,6 +184,27 @@ export function useAudioPlayer(src: string | null, fallbackDuration: number | nu
       void play()
     },
     [play, seek],
+  )
+
+  /** Toca apenas o trecho `[start, end]`, parando automaticamente no fim. */
+  const playRange = useCallback(
+    (start: number, end: number, key: string) => {
+      seek(start)
+      stopAtRef.current = end
+      setRangeKey(key)
+      void play()
+    },
+    [play, seek],
+  )
+
+  /** Alterna entre tocar e pausar o trecho identificado por `key`. */
+  const toggleRange = useCallback(
+    (start: number, end: number, key: string) => {
+      const audio = audioRef.current
+      if (audio && !audio.paused && rangeKey === key) audio.pause()
+      else playRange(start, end, key)
+    },
+    [playRange, rangeKey],
   )
 
   const cycleRate = useCallback(() => {
@@ -184,6 +231,10 @@ export function useAudioPlayer(src: string | null, fallbackDuration: number | nu
     seek,
     skip,
     playFrom,
+    playRange,
+    toggleRange,
+    /** Chave do trecho em reprodução, ou `null`. */
+    playingRangeKey: isPlaying ? rangeKey : null,
     cycleRate,
     getCurrentTime,
   }

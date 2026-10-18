@@ -1,12 +1,15 @@
+import type { Ref } from 'react'
 import { AlertCircle, Headphones, Pause, Play, RotateCcw, RotateCw } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Slider } from '@/components/ui/slider'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { MomentRangeEditor } from '@/components/MomentRangeEditor'
+import { PlaybackTimeline } from '@/components/PlaybackTimeline'
 import { formatBytes, formatLabel } from '@/services/audioService'
 import { formatTime } from '@/lib/time'
 import type { AudioPlayerControls } from '@/hooks/useAudioPlayer'
+import type { WaveformState } from '@/hooks/useWaveform'
 import type { ImportantMoment, ProjectAudio } from '@/types/project'
 
 const SKIP_SECONDS = 10
@@ -15,7 +18,16 @@ interface AudioPlayerProps {
   player: AudioPlayerControls
   audio: ProjectAudio | null
   moments: ImportantMoment[]
+  waveform: WaveformState
   isRecording: boolean
+  selectedMoment: ImportantMoment | null
+  downloadingId: string | null
+  onSelectMoment: (moment: ImportantMoment) => void
+  onCloseEditor: () => void
+  onChangeRange: (moment: ImportantMoment, startSeconds: number, endSeconds: number) => void
+  onToggleRange: (moment: ImportantMoment) => void
+  onDownloadMoment: (moment: ImportantMoment) => void
+  cardRef?: Ref<HTMLDivElement>
 }
 
 function audioDescription(audio: ProjectAudio): string {
@@ -24,14 +36,27 @@ function audioDescription(audio: ProjectAudio): string {
   return `${formatLabel(audio.extension)} · ${formatBytes(audio.blob.size)} · ${origin}`
 }
 
-/** Controles de reprodução com linha do tempo navegável e marcadores dos momentos. */
-export function AudioPlayer({ player, audio, moments, isRecording }: AudioPlayerProps) {
+/** Reprodução com forma de onda, trechos dos momentos e editor do trecho selecionado. */
+export function AudioPlayer({
+  player,
+  audio,
+  moments,
+  waveform,
+  isRecording,
+  selectedMoment,
+  downloadingId,
+  onSelectMoment,
+  onCloseEditor,
+  onChangeRange,
+  onToggleRange,
+  onDownloadMoment,
+  cardRef,
+}: AudioPlayerProps) {
   const { isPlaying, currentTime, duration, error } = player
   const disabled = !audio
-  const progressMax = duration > 0 ? duration : 1
 
   return (
-    <Card>
+    <Card ref={cardRef} className="scroll-mt-20">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Headphones className="size-4 text-muted-foreground" />
@@ -41,46 +66,23 @@ export function AudioPlayer({ player, audio, moments, isRecording }: AudioPlayer
           {audio
             ? audioDescription(audio)
             : isRecording
-              ? 'A reprodução fica disponível ao finalizar a gravação.'
+              ? 'A reprodução e o ajuste dos trechos ficam disponíveis ao finalizar a gravação.'
               : 'Nenhum áudio carregado. Grave pelo microfone ou importe um projeto.'}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <div className="relative pt-4">
-          {/* Marcadores dos momentos sobre a linha do tempo */}
-          {audio && duration > 0 && (
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-3">
-              {moments.map((moment) => (
-                <Tooltip key={moment.id}>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      className="pointer-events-auto absolute top-0 h-3 w-2 -translate-x-1/2 rounded-sm bg-highlight ring-2 ring-card transition-transform hover:scale-125 focus-visible:scale-125 focus-visible:outline-none"
-                      style={{ left: `${Math.min(100, (moment.timeSeconds / duration) * 100)}%` }}
-                      onClick={() => player.playFrom(moment.timeSeconds)}
-                      aria-label={`Ir para ${moment.name || 'momento sem nome'} em ${formatTime(moment.timeSeconds)}`}
-                    />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {formatTime(moment.timeSeconds)} · {moment.name || 'Sem nome'}
-                  </TooltipContent>
-                </Tooltip>
-              ))}
-            </div>
-          )}
-          <Slider
-            value={[Math.min(currentTime, progressMax)]}
-            min={0}
-            max={progressMax}
-            step={0.1}
-            disabled={disabled || duration <= 0}
-            onValueChange={([value]) => player.seek(value)}
-            aria-label="Posição da reprodução"
-            className="py-2"
-          />
-        </div>
+        <PlaybackTimeline
+          duration={duration}
+          currentTime={currentTime}
+          waveform={waveform}
+          moments={moments}
+          selectedId={selectedMoment?.id ?? null}
+          disabled={disabled}
+          onSeek={player.seek}
+          onSelectMoment={onSelectMoment}
+        />
 
-        <div className="flex items-center justify-between font-mono text-xs text-muted-foreground tabular-nums">
+        <div className="-mt-2 flex items-center justify-between font-mono text-xs text-muted-foreground tabular-nums">
           <span aria-label="Tempo atual">{formatTime(currentTime)}</span>
           <span aria-label="Duração total">{formatTime(duration)}</span>
         </div>
@@ -142,6 +144,29 @@ export function AudioPlayer({ player, audio, moments, isRecording }: AudioPlayer
             <TooltipContent>Alterar velocidade</TooltipContent>
           </Tooltip>
         </div>
+
+        {audio && selectedMoment && duration > 0 && (
+          <MomentRangeEditor
+            key={selectedMoment.id}
+            moment={selectedMoment}
+            duration={duration}
+            waveform={waveform.status === 'ready' ? waveform.data : null}
+            currentTime={currentTime}
+            isPlayingRange={player.playingRangeKey === selectedMoment.id}
+            isDownloading={downloadingId === selectedMoment.id}
+            onChangeRange={(start, end) => onChangeRange(selectedMoment, start, end)}
+            onSeek={player.seek}
+            onToggleRange={() => onToggleRange(selectedMoment)}
+            onDownload={() => onDownloadMoment(selectedMoment)}
+            onClose={onCloseEditor}
+          />
+        )}
+
+        {audio && !selectedMoment && moments.length > 0 && (
+          <p className="text-center text-xs text-muted-foreground">
+            Selecione um momento (bandeira na linha do tempo ou “Ajustar trecho” na lista) para ajustar seu início e fim.
+          </p>
+        )}
 
         {error && (
           <Alert variant="destructive">

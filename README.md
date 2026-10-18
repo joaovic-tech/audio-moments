@@ -5,8 +5,10 @@ Plataforma web responsiva para **gravar conversas pelo microfone, marcar momento
 ## Funcionalidades
 
 - **Gravação** com `getUserMedia` + `MediaRecorder`: iniciar, pausar/retomar, finalizar e descartar (com confirmação). Cronômetro, indicador de estado e medidor de nível do microfone.
-- **Marcação de momentos** com o botão **“Marcar momento importante”** (ou a tecla <kbd>M</kbd>). O tempo registrado é a posição real no áudio: o cronômetro desconta as pausas. Depois da gravação, ou em um áudio importado, a marcação usa a posição atual da reprodução.
-- **Lista de momentos** em ordem cronológica, com nome (obrigatório), observação (opcional), ações para reproduzir a partir daquele instante, editar e excluir (com confirmação). Os marcadores também aparecem na linha do tempo do player.
+- **Marcação de momentos** com o botão **“Marcar momento importante”** (ou a tecla <kbd>M</kbd>). O tempo registrado é a posição real no áudio: o cronômetro desconta as pausas. Depois da gravação, ou em um áudio importado, a marcação usa a posição atual da reprodução. Após cada clique o botão fica **bloqueado por 2 segundos**, para evitar marcações duplicadas.
+- **Trecho de cada momento**: toda marcação recebe um trecho padrão de **2 s antes até 2 s depois** do instante marcado. No player, um editor no estilo dos editores de áudio mostra a forma de onda ampliada, com **alças arrastáveis de início e fim**. As alças também respondem às setas do teclado (0,1 s, ou 1 s com Shift), e os botões “Início aqui”/“Fim aqui” usam a posição atual da reprodução. A linha do tempo geral mostra a forma de onda e o trecho de todos os momentos.
+- **Ouvir e baixar o trecho**: “Ouvir trecho” toca só o intervalo e para no fim. **“Baixar trecho”** baixa apenas aquele momento, em WAV (veja as limitações).
+- **Lista de momentos** em ordem cronológica, com nome (obrigatório), observação (opcional), início/fim/duração do trecho e as ações ouvir trecho, ajustar trecho, baixar trecho, editar e excluir (com confirmação).
 - **Player**: tocar/pausar, voltar/avançar 10 s, barra de progresso navegável, tempo atual/duração e velocidade de reprodução.
 - **Importar projeto**: áudio obrigatório (WAV, MP3, M4A, WebM, OGG, FLAC, AAC), JSON opcional, ou diretamente o `.zip` exportado pela aplicação. Tudo é validado antes de carregar, e a substituição de um projeto aberto pede confirmação.
 - **Exportar projeto**:
@@ -43,11 +45,11 @@ Acesse <http://localhost:5173>.
 
 Para testar em um celular na mesma rede, use `npm run dev -- --host`. Fora de `localhost`, porém, o navegador só libera o microfone via HTTPS (por exemplo, com um proxy/túnel HTTPS ou com `@vitejs/plugin-basic-ssl`).
 
-## Formato do arquivo JSON (versão 1)
+## Formato do arquivo JSON (versão 2)
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "recordingName": "Reunião com cliente",
   "audioFile": "reuniao-com-cliente.webm",
   "durationSeconds": 365.4,
@@ -56,6 +58,10 @@ Para testar em um celular na mesma rede, use `npm run dev -- --host`. Fora de `l
       "id": "moment-001",
       "timeSeconds": 42.5,
       "timeFormatted": "00:00:42",
+      "startSeconds": 40.5,
+      "startFormatted": "00:00:40",
+      "endSeconds": 44.5,
+      "endFormatted": "00:00:44",
       "name": "Definição do orçamento",
       "observation": "O cliente mencionou o orçamento disponível."
     }
@@ -65,14 +71,17 @@ Para testar em um celular na mesma rede, use `npm run dev -- --host`. Fora de `l
 
 | Campo                 | Obrigatório | Descrição                                                              |
 | --------------------- | ----------- | ---------------------------------------------------------------------- |
-| `version`             | sim         | Versão do formato. Apenas `1` é aceita.                                |
+| `version`             | sim         | Versão do formato. A exportação grava `2`; a importação aceita `1` e `2`. |
 | `recordingName`       | sim         | Nome do projeto/gravação.                                              |
 | `audioFile`           | não         | Nome do arquivo de áudio associado (dentro do ZIP).                    |
 | `durationSeconds`     | não         | Duração do áudio em segundos.                                          |
 | `importantMoments`    | sim         | Lista de marcações (pode ser vazia).                                   |
 | `id`                  | —           | Identificador único. Se faltar ou se repetir, um novo é gerado.        |
-| `timeSeconds`         | sim         | Posição em segundos (≥ 0). **Referência principal** para reprodução.   |
+| `timeSeconds`         | sim         | Instante marcado, em segundos (≥ 0).                                   |
 | `timeFormatted`       | não         | `HH:MM:SS` calculado a partir de `timeSeconds` (ignorado na leitura).  |
+| `startSeconds`        | não (v2)    | Início do trecho, em segundos. Sem ele, usa-se o trecho padrão (±2 s). |
+| `endSeconds`          | não (v2)    | Fim do trecho, em segundos (maior que `startSeconds`).                 |
+| `startFormatted` / `endFormatted` | não | `HH:MM:SS` calculados (ignorados na leitura).                    |
 | `name`                | sim         | Nome do momento.                                                       |
 | `observation`         | não         | Texto livre; string vazia quando não preenchido.                       |
 
@@ -81,6 +90,7 @@ Para testar em um celular na mesma rede, use `npm run dev -- --host`. Fora de `l
 - JSON malformado, `version` diferente de `1` ou ausência de `recordingName`/`importantMoments` → o JSON é **rejeitado por inteiro** e nenhuma marcação é carregada. O áudio pode ser importado sozinho.
 - Marcações individuais sem nome ou com `timeSeconds` inválido → são **ignoradas**, e cada uma é relatada nos avisos.
 - Marcações além da duração do áudio → são **ignoradas** e relatadas. Até 0,5 s além do fim, são ajustadas para o último instante.
+- Trechos ausentes (arquivos da versão 1) ou inválidos (início ≥ fim, valores não numéricos) → recebem o trecho padrão de ±2 s. Trechos que passam do fim do áudio são cortados no fim, com aviso.
 - Divergências de `audioFile` ou de `durationSeconds` em relação ao áudio escolhido → aviso, sem bloquear a importação.
 
 ## Arquitetura
@@ -92,7 +102,11 @@ src/
 │   ├── AudioRecorder.tsx        # Nome, estado, cronômetro, controles e botão de marcação
 │   ├── RecordingControls.tsx    # Iniciar / pausar / retomar / finalizar / descartar
 │   ├── LevelMeter.tsx           # Medidor de nível do microfone
-│   ├── AudioPlayer.tsx          # Player com linha do tempo e marcadores
+│   ├── AudioPlayer.tsx          # Player: controles, linha do tempo e editor do trecho
+│   ├── PlaybackTimeline.tsx     # Forma de onda geral, trechos e cursor de reprodução
+│   ├── MomentRangeEditor.tsx    # Editor do trecho com alças arrastáveis
+│   ├── Waveform.tsx             # Desenho da forma de onda em canvas
+│   ├── MarkMomentButton.tsx     # Botão de marcação com bloqueio de 2 s
 │   ├── ImportantMomentList.tsx  # Lista + estado vazio
 │   ├── ImportantMomentItem.tsx  # Item (visualização/edição)
 │   ├── ImportantMomentForm.tsx  # Formulário nome/observação com validação
@@ -105,9 +119,12 @@ src/
 │   ├── useAudioPlayer.ts        # Controle do <audio>, correção da duração de WebM
 │   ├── useProject.ts            # Reducer do projeto (nome, áudio, marcações)
 │   ├── useObjectUrl.ts          # createObjectURL/revokeObjectURL com ciclo de vida
+│   ├── useWaveform.ts           # Forma de onda calculada localmente
 │   └── ...
 ├── services/
 │   ├── audioService.ts          # Formatos, MIME types, leitura de metadados
+│   ├── waveformService.ts       # Decodificação e cálculo dos picos da forma de onda
+│   ├── audioClipService.ts      # Recorte do trecho e codificação em WAV
 │   ├── projectImportService.ts  # Validação do JSON, leitura de ZIP, prévia de importação
 │   └── projectExportService.ts  # Montagem do JSON, ZIP e download
 ├── lib/                         # Formatação de tempo, nomes de arquivo seguros, ids
@@ -118,7 +135,8 @@ Stack: React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui (Radix), Lucide Re
 
 ## Testes e verificações
 
-- `npm test`: 24 testes unitários cobrindo a formatação de tempo, a sanitização de nomes de arquivo, a validação do JSON (sintaxe, versão, campos obrigatórios, tempos fora da duração, ids duplicados) e a exportação (somente áudio × ZIP, bytes do áudio preservados, ida e volta exportar → importar sem perdas).
+- `npm test`: 42 testes unitários cobrindo a formatação de tempo, a sanitização de nomes de arquivo, os trechos (padrão de ±2 s, limites, janela do editor), a validação do JSON v1/v2, a exportação (somente áudio × ZIP, bytes preservados, ida e volta sem perdas), a codificação WAV e o cálculo da forma de onda.
+- Testes manuais do trecho: bloqueio de 2 s do botão (incluindo a tecla M), trecho padrão, arrasto real das alças com reenquadramento da janela, ajuste pelo teclado, “Ouvir trecho” parando no fim exato, download do trecho (WAV válido com a duração correta) a partir de WAV e de WebM gravado, e layout em 375 px.
 - Testes manuais no navegador (Chromium), com um stream sintético no lugar do microfone: gravação com pausa/retomada (marcações descontando a pausa), reprodução a partir de uma marcação, exportação ZIP e somente áudio, importação de WAV + JSON (com marcação fora da duração), JSON inválido, arquivo não suportado, reimportação do ZIP, edição/exclusão de marcações importadas, bloqueio de marcação sem nome, confirmações de substituir/descartar, erro de permissão negada e layout em 375 px.
 
 ## Privacidade e armazenamento
@@ -128,6 +146,10 @@ Stack: React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui (Radix), Lucide Re
 - **Não há persistência**: o projeto fica na memória da aba e se perde ao fechar ou recarregar a página. A aplicação avisa antes de fechar se houver alterações não exportadas. Exporte para guardar o trabalho.
 
 ## Limitações conhecidas
+
+- **Trechos são baixados em WAV** (PCM 16 bits, 48 kHz, até 2 canais). Cortar WebM/Opus, MP3 ou AAC com precisão exige recodificar, então o trecho é decodificado e salvo sem compressão adicional. Por isso o arquivo fica maior (cerca de 5,6 MB por minuto em mono). Para recortar, o áudio inteiro é decodificado na memória, o que pode ser lento em gravações muito longas no celular.
+- A forma de onda não é calculada para áudios acima de 150 MB ou de 2 horas (a linha do tempo continua funcionando sem ela).
+- Durante a gravação a duração final ainda é desconhecida: o trecho padrão é ajustado ao finalizar, e o editor de trechos só fica disponível depois disso.
 
 - O formato da gravação depende do navegador: WebM/Opus (Chrome, Edge, Firefox recente), OGG (Firefox antigo) ou MP4/AAC (Safari). O áudio é exportado no formato em que foi gravado ou importado; **não há conversão** (por exemplo, para MP3).
 - Arquivos WebM gravados pelo navegador não trazem a duração no cabeçalho. A aplicação a calcula ao carregar, mas alguns players externos podem mostrar a duração incorreta ou demorar para avançar no arquivo.

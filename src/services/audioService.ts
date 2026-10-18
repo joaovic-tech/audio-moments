@@ -180,3 +180,13 @@ export function probeAudio(blob: Blob): Promise<{ durationSeconds: number | null
     audio.src = url
   })
 }
+
+/**
+ * Decodifica o áudio inteiro em PCM, reamostrado para `sampleRate`.
+ * Usa um OfflineAudioContext, que não toca som nem exige interação do usuário.
+ */
+export async function decodeAudio(blob: Blob, sampleRate: number): Promise<AudioBuffer> {
+  const data = await blob.arrayBuffer()
+  const context = new OfflineAudioContext({ numberOfChannels: 1, length: 1, sampleRate })
+  return context.decodeAudioData(data)
+}

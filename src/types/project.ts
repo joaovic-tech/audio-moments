@@ -4,8 +4,12 @@ export type AudioSource = 'recording' | 'import'
 /** Marcação de um momento importante, posicionada no tempo do áudio. */
 export interface ImportantMoment {
   id: string
-  /** Posição no áudio, em segundos. Referência principal para reprodução. */
+  /** Instante marcado no áudio, em segundos. */
   timeSeconds: number
+  /** Início do trecho do momento, em segundos (ajustável pelo usuário). */
+  startSeconds: number
+  /** Fim do trecho do momento, em segundos (ajustável pelo usuário). */
+  endSeconds: number
   /** Nome obrigatório. Uma string vazia indica uma marcação ainda não preenchida. */
   name: string
   observation: string
@@ -34,24 +38,31 @@ export interface Project {
   hasUnsavedChanges: boolean
 }
 
-/* ---------- Formato do arquivo JSON exportado (versão 1) ---------- */
+/* ---------- Formato do arquivo JSON exportado ---------- */
 
-export const PROJECT_FILE_VERSION = 1
+/** Versão gravada na exportação. A versão 2 acrescenta o trecho (início/fim) de cada momento. */
+export const PROJECT_FILE_VERSION = 2
+/** Versões aceitas na importação. Arquivos da versão 1 recebem um trecho padrão. */
+export const SUPPORTED_PROJECT_FILE_VERSIONS: readonly number[] = [1, 2]
 
-export interface ExportedMomentV1 {
+export interface ExportedMoment {
   id: string
   timeSeconds: number
   timeFormatted: string
+  startSeconds: number
+  startFormatted: string
+  endSeconds: number
+  endFormatted: string
   name: string
   observation: string
 }
 
-export interface ProjectFileV1 {
+export interface ProjectFile {
   version: typeof PROJECT_FILE_VERSION
   recordingName: string
   audioFile: string
   durationSeconds: number
-  importantMoments: ExportedMomentV1[]
+  importantMoments: ExportedMoment[]
 }
 
 /* ---------- Gravação ---------- */

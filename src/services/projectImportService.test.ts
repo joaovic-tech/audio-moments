@@ -38,6 +38,9 @@ describe('parseProjectJson', () => {
     expect(result.value.moments[0]).toEqual({
       id: 'moment-001',
       timeSeconds: 42.5,
+      // Versão 1 não tem trecho: recebe o padrão (2 s antes e 2 s depois).
+      startSeconds: 40.5,
+      endSeconds: 44.5,
       name: 'Definição do orçamento',
       observation: 'O cliente mencionou o orçamento disponível.',
     })
@@ -49,7 +52,7 @@ describe('parseProjectJson', () => {
   })
 
   it('rejeita versão desconhecida e campos obrigatórios ausentes', () => {
-    const result = parse({ version: 2, importantMoments: [] })
+    const result = parse({ version: 3, importantMoments: [] })
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(result.errors.some((e) => e.includes('Versão'))).toBe(true)
@@ -91,7 +94,9 @@ describe('parseProjectJson', () => {
     )
     expect(result.ok).toBe(true)
     if (!result.ok) return
-    expect(result.value.moments).toEqual([{ id: 'a', timeSeconds: 100, name: 'Quase no fim', observation: '' }])
+    expect(result.value.moments).toEqual([
+      { id: 'a', timeSeconds: 100, startSeconds: 98, endSeconds: 100, name: 'Quase no fim', observation: '' },
+    ])
     expect(result.value.warnings.some((w) => w.includes('"Fora"'))).toBe(true)
     expect(result.value.warnings.some((w) => w.includes('duração registrada'))).toBe(true)
   })
@@ -115,5 +120,37 @@ describe('parseProjectJson', () => {
   it('avisa quando o JSON referencia outro arquivo de áudio', () => {
     const result = parse(example, 365.4, 'outro.mp3')
     expect(result.ok && result.value.warnings.some((w) => w.includes('outro.mp3'))).toBe(true)
+  })
+})
+
+describe('parseProjectJson — trechos (versão 2)', () => {
+  const v2 = (moment: Record<string, unknown>) => ({
+    ...example,
+    version: 2,
+    importantMoments: [{ id: 'm', timeSeconds: 40, name: 'Trecho', observation: '', ...moment }],
+  })
+
+  it('carrega início e fim do trecho', () => {
+    const result = parse(v2({ startSeconds: 30.25, endSeconds: 61 }))
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.value.moments[0]).toMatchObject({ startSeconds: 30.25, endSeconds: 61 })
+    expect(result.value.warnings).toEqual([])
+  })
+
+  it('usa o trecho padrão quando os valores são inválidos', () => {
+    const result = parse(v2({ startSeconds: 50, endSeconds: 20 }))
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.value.moments[0]).toMatchObject({ startSeconds: 38, endSeconds: 42 })
+    expect(result.value.warnings).toHaveLength(1)
+  })
+
+  it('ajusta o fim do trecho que passa da duração do áudio', () => {
+    const result = parse(v2({ startSeconds: 350, endSeconds: 400 }))
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.value.moments[0]).toMatchObject({ startSeconds: 350, endSeconds: 365.4 })
+    expect(result.value.warnings.some((w) => w.includes('ajustado'))).toBe(true)
   })
 })

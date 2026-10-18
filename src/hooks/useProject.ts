@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useReducer } from 'react'
 import { createMomentId } from '@/lib/id'
+import { clampRange, defaultRange } from '@/lib/momentRange'
 import { roundSeconds } from '@/lib/time'
 import type { ImportantMoment, Project, ProjectAudio } from '@/types/project'
 
@@ -10,6 +11,7 @@ type Action =
   | { type: 'loadImported'; audio: ProjectAudio; name: string; moments: ImportantMoment[] }
   | { type: 'addMoment'; moment: ImportantMoment }
   | { type: 'updateMoment'; id: string; changes: Pick<ImportantMoment, 'name' | 'observation'> }
+  | { type: 'updateMomentRange'; id: string; startSeconds: number; endSeconds: number; duration: number | null }
   | { type: 'deleteMoment'; id: string }
   | { type: 'markSaved' }
 
@@ -22,12 +24,14 @@ const initialProject: Project = {
 
 const byTime = (a: ImportantMoment, b: ImportantMoment) => a.timeSeconds - b.timeSeconds
 
-/** Garante que nenhuma marcação fique além do fim do áudio. */
+/** Garante que nenhuma marcação ou trecho fique além do fim do áudio. */
 function clampMoments(moments: ImportantMoment[], duration: number | null): ImportantMoment[] {
   if (duration === null) return moments
-  return moments.map((moment) =>
-    moment.timeSeconds > duration ? { ...moment, timeSeconds: roundSeconds(duration) } : moment,
-  )
+  return moments.map((moment) => ({
+    ...moment,
+    timeSeconds: Math.min(moment.timeSeconds, roundSeconds(duration)),
+    ...clampRange(moment.startSeconds, moment.endSeconds, duration),
+  }))
 }
 
 function reducer(state: Project, action: Action): Project {
@@ -58,6 +62,16 @@ function reducer(state: Project, action: Action): Project {
         moments: state.moments.map((moment) => (moment.id === action.id ? { ...moment, ...action.changes } : moment)),
         hasUnsavedChanges: true,
       }
+    case 'updateMomentRange':
+      return {
+        ...state,
+        moments: state.moments.map((moment) =>
+          moment.id === action.id
+            ? { ...moment, ...clampRange(action.startSeconds, action.endSeconds, action.duration) }
+            : moment,
+        ),
+        hasUnsavedChanges: true,
+      }
     case 'deleteMoment':
       return { ...state, moments: state.moments.filter((moment) => moment.id !== action.id), hasUnsavedChanges: true }
     case 'markSaved':
@@ -77,11 +91,16 @@ export function useProject() {
       dispatch({ type: 'loadImported', audio, name, moments }),
     [],
   )
-  /** Cria uma marcação sem nome no tempo informado e retorna seu id. */
-  const addMoment = useCallback((timeSeconds: number) => {
+  /**
+   * Cria uma marcação sem nome no tempo informado, com um trecho padrão ao redor dele,
+   * e retorna seu id. `duration` é `null` durante a gravação (ajustado ao finalizar).
+   */
+  const addMoment = useCallback((timeSeconds: number, duration: number | null) => {
+    const time = roundSeconds(Math.max(0, timeSeconds))
     const moment: ImportantMoment = {
       id: createMomentId(),
-      timeSeconds: roundSeconds(Math.max(0, timeSeconds)),
+      timeSeconds: time,
+      ...defaultRange(time, duration),
       name: '',
       observation: '',
     }
@@ -91,6 +110,11 @@ export function useProject() {
   const updateMoment = useCallback(
     (id: string, changes: Pick<ImportantMoment, 'name' | 'observation'>) =>
       dispatch({ type: 'updateMoment', id, changes }),
+    [],
+  )
+  const updateMomentRange = useCallback(
+    (id: string, startSeconds: number, endSeconds: number, duration: number | null) =>
+      dispatch({ type: 'updateMomentRange', id, startSeconds, endSeconds, duration }),
     [],
   )
   const deleteMoment = useCallback((id: string) => dispatch({ type: 'deleteMoment', id }), [])
@@ -108,9 +132,22 @@ export function useProject() {
       loadImported,
       addMoment,
       updateMoment,
+      updateMomentRange,
       deleteMoment,
       markSaved,
     }),
-    [project, hasContent, setName, clearContent, setRecordedAudio, loadImported, addMoment, updateMoment, deleteMoment, markSaved],
+    [
+      project,
+      hasContent,
+      setName,
+      clearContent,
+      setRecordedAudio,
+      loadImported,
+      addMoment,
+      updateMoment,
+      updateMomentRange,
+      deleteMoment,
+      markSaved,
+    ],
   )
 }
