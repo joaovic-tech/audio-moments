@@ -252,8 +252,9 @@ export default function App() {
       ? null
       : playbackDuration || audio?.durationSeconds || null;
     const id = addMoment(time, duration);
-    setEditingIds((previous) => new Set(previous).add(id));
-    setFocusId(id);
+    // Só registra o instante: não abre o formulário nem move o foco. No celular, focar o
+    // campo de nome abria o teclado e rolava a tela, atrapalhando quem está entrevistando.
+    // Nome e observação são preenchidos depois, com calma, direto na lista.
     if (!isRecordingNow) setSelectedMomentId(id);
 
     // Evita marcações duplicadas por cliques repetidos.
@@ -264,7 +265,7 @@ export default function App() {
     }, MARK_COOLDOWN_MS);
 
     toast(`Momento marcado em ${formatTime(time)}`, {
-      description: "Dê um nome a ele na lista de momentos.",
+      description: "Dê um nome e uma observação depois, na lista de momentos.",
     });
   }, [
     addMoment,

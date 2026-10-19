@@ -179,13 +179,17 @@ export function ImportantMomentItem({
                 }
                 className={cn(
                   "min-w-0 wrap-break-word",
-                  !moment.name && "text-destructive",
+                  // Sem nome é um estado normal (marcação rápida): discreto, não um erro.
+                  !moment.name && "text-muted-foreground italic",
                 )}
               >
                 {displayName}
               </InlineEditableText>
               {!moment.name && (
-                <Badge variant="destructive" className="font-normal">
+                <Badge
+                  variant="outline"
+                  className="font-normal text-muted-foreground"
+                >
                   Nome pendente
                 </Badge>
               )}

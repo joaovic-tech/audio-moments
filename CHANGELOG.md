@@ -16,6 +16,10 @@ A versão tem o formato `MAJOR.MINOR.PATCH` e fica no campo `version` do [`packa
 
 ## [Não lançado]
 
+### Alterado
+
+- "Marcar momento importante" (e a tecla M) só registra o instante: não abre mais o formulário nem coloca o foco no campo de nome. No celular, o foco abria o teclado e rolava a tela, atrapalhando quem está entrevistando. Nome e observação são preenchidos depois, direto na lista; momentos ainda sem nome aparecem com o selo discreto "Nome pendente".
+
 ## [0.4.0] - 2026-10-19
 
 ### Adicionado
