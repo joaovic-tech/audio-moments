@@ -24,6 +24,14 @@ function cssColor(element: Element, variable: string, fallback: string) {
 export function Waveform({ data, viewStart, viewEnd, playedUntil = -1, className }: WaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
+  // As cores vêm de variáveis CSS: redesenha quando o tema (classe/estilo do <html>) muda.
+  const [themeVersion, setThemeVersion] = useState(0)
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => setThemeVersion((version) => version + 1))
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'style'] })
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -74,7 +82,7 @@ export function Waveform({ data, viewStart, viewEnd, playedUntil = -1, className
       context.roundRect(x, middle - height / 2, BAR_WIDTH, height, 1)
       context.fill()
     }
-  }, [data, playedUntil, size, viewEnd, viewStart])
+  }, [data, playedUntil, size, themeVersion, viewEnd, viewStart])
 
   return <canvas ref={canvasRef} className={cn('block size-full', className)} aria-hidden="true" />
 }

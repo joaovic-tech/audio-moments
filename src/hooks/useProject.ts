@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useReducer } from 'react'
 import { createMomentId } from '@/lib/id'
-import { clampRange, defaultRange } from '@/lib/momentRange'
+import { clampRange, clampTimeToRange, compareByRange, defaultRange } from '@/lib/momentRange'
 import { roundSeconds } from '@/lib/time'
 import type { ImportantMoment, Project, ProjectAudio } from '@/types/project'
 
@@ -22,16 +22,15 @@ const initialProject: Project = {
   hasUnsavedChanges: false,
 }
 
-const byTime = (a: ImportantMoment, b: ImportantMoment) => a.timeSeconds - b.timeSeconds
+const byTime = compareByRange
 
 /** Garante que nenhuma marcação ou trecho fique além do fim do áudio. */
 function clampMoments(moments: ImportantMoment[], duration: number | null): ImportantMoment[] {
   if (duration === null) return moments
-  return moments.map((moment) => ({
-    ...moment,
-    timeSeconds: Math.min(moment.timeSeconds, roundSeconds(duration)),
-    ...clampRange(moment.startSeconds, moment.endSeconds, duration),
-  }))
+  return moments.map((moment) => {
+    const range = clampRange(moment.startSeconds, moment.endSeconds, duration)
+    return { ...moment, ...range, timeSeconds: clampTimeToRange(Math.min(moment.timeSeconds, roundSeconds(duration)), range) }
+  })
 }
 
 function reducer(state: Project, action: Action): Project {
@@ -65,11 +64,14 @@ function reducer(state: Project, action: Action): Project {
     case 'updateMomentRange':
       return {
         ...state,
-        moments: state.moments.map((moment) =>
-          moment.id === action.id
-            ? { ...moment, ...clampRange(action.startSeconds, action.endSeconds, action.duration) }
-            : moment,
-        ),
+        moments: state.moments
+          .map((moment) => {
+            if (moment.id !== action.id) return moment
+            const range = clampRange(action.startSeconds, action.endSeconds, action.duration)
+            // O instante marcado acompanha o trecho ajustado.
+            return { ...moment, ...range, timeSeconds: clampTimeToRange(moment.timeSeconds, range) }
+          })
+          .sort(byTime),
         hasUnsavedChanges: true,
       }
     case 'deleteMoment':

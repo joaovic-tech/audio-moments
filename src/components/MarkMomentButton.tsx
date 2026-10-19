@@ -1,18 +1,18 @@
-import type { ReactNode, Ref } from 'react'
-import { Bookmark, Check } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Kbd } from '@/components/Kbd'
-import { cn } from '@/lib/utils'
+import type { ReactNode, Ref } from "react";
+import { Bookmark, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Kbd } from "@/components/Kbd";
+import { cn } from "@/lib/utils";
 
 interface MarkMomentButtonProps {
-  disabled: boolean
+  disabled: boolean;
   /** Bloqueio temporário logo após uma marcação. */
-  locked: boolean
-  onClick: () => void
-  children: ReactNode
-  showShortcut?: boolean
-  className?: string
-  buttonRef?: Ref<HTMLButtonElement>
+  locked: boolean;
+  onClick: () => void;
+  children: ReactNode;
+  showShortcut?: boolean;
+  className?: string;
+  buttonRef?: Ref<HTMLButtonElement>;
 }
 
 /** Botão de destaque para marcar momentos, com bloqueio visual de alguns segundos após o clique. */
@@ -30,8 +30,8 @@ export function MarkMomentButton({
       ref={buttonRef}
       size="lg"
       className={cn(
-        'relative overflow-hidden rounded-xl bg-highlight text-base font-semibold text-highlight-foreground shadow-sm hover:bg-highlight/90',
-        locked && 'disabled:opacity-80',
+        "relative overflow-hidden rounded-xl bg-highlight text-base font-semibold text-highlight-foreground shadow-sm hover:bg-highlight/90",
+        locked && "disabled:opacity-80",
         className,
       )}
       disabled={disabled || locked}
@@ -52,9 +52,9 @@ export function MarkMomentButton({
         <>
           <Bookmark className="size-5" />
           {children}
-          {showShortcut && <Kbd className="ml-1 hidden sm:inline-flex">M</Kbd>}
+          {showShortcut && <Kbd className="hidden sm:inline-flex">M</Kbd>}
         </>
       )}
     </Button>
-  )
+  );
 }

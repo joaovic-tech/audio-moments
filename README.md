@@ -8,14 +8,15 @@ Plataforma web responsiva para **gravar conversas pelo microfone, marcar momento
 - **Marcação de momentos** com o botão **“Marcar momento importante”** (ou a tecla <kbd>M</kbd>). O tempo registrado é a posição real no áudio: o cronômetro desconta as pausas. Depois da gravação, ou em um áudio importado, a marcação usa a posição atual da reprodução. Após cada clique o botão fica **bloqueado por 2 segundos**, para evitar marcações duplicadas.
 - **Trecho de cada momento**: toda marcação recebe um trecho padrão de **2 s antes até 2 s depois** do instante marcado. No player, um editor no estilo dos editores de áudio mostra a forma de onda ampliada, com **alças arrastáveis de início e fim**. As alças também respondem às setas do teclado (0,1 s, ou 1 s com Shift), e os botões “Início aqui”/“Fim aqui” usam a posição atual da reprodução. A linha do tempo geral mostra a forma de onda e o trecho de todos os momentos.
 - **Ouvir e baixar o trecho**: “Ouvir trecho” toca só o intervalo e para no fim. **“Baixar trecho”** baixa apenas aquele momento, em WAV (veja as limitações).
-- **Lista de momentos** em ordem cronológica, com nome (obrigatório), observação (opcional), início/fim/duração do trecho e as ações ouvir trecho, ajustar trecho, baixar trecho, editar e excluir (com confirmação).
+- **Lista de momentos** em ordem cronológica (pelo início do trecho), com nome (obrigatório), observação (opcional), início/fim/duração do trecho e as ações ouvir trecho, ajustar trecho, baixar trecho, editar e excluir (com confirmação).
 - **Player**: tocar/pausar, voltar/avançar 10 s, barra de progresso navegável, tempo atual/duração e velocidade de reprodução.
 - **Importar projeto**: áudio obrigatório (WAV, MP3, M4A, WebM, OGG, FLAC, AAC), JSON opcional, ou diretamente o `.zip` exportado pela aplicação. Tudo é validado antes de carregar, e a substituição de um projeto aberto pede confirmação.
 - **Exportar projeto**:
   - com marcações, gera um `.zip` com o áudio original (bytes copiados sem recompressão) e `momentos-importantes.json`;
   - sem marcações, baixa **somente o áudio**, no formato original (sem ZIP nem JSON vazio).
 - **Nome do projeto**, usado na interface e nos arquivos (convertido para um nome de arquivo seguro). O padrão é `gravacao-AAAA-MM-DD`.
-- Tema claro/escuro automático, layout para celular (com barra fixa de marcação durante a gravação) e aviso antes de fechar a página com alterações não exportadas.
+- Tema claro/escuro com botão de alternância no canto superior direito (a escolha fica salva no navegador; sem escolha, segue o sistema). A versão da plataforma aparece ao lado do nome.
+- Layout para celular (com barra fixa de marcação durante a gravação) e aviso antes de fechar a página com alterações não exportadas.
 
 ## Requisitos
 
@@ -44,6 +45,38 @@ Acesse <http://localhost:5173>.
 | `npm run check`     | typecheck + lint + testes + build                |
 
 Para testar em um celular na mesma rede, use `npm run dev -- --host`. Fora de `localhost`, porém, o navegador só libera o microfone via HTTPS (por exemplo, com um proxy/túnel HTTPS ou com `@vitejs/plugin-basic-ssl`).
+
+## Versão
+
+O projeto segue o [Versionamento Semântico](https://semver.org/lang/pt-BR/). A versão atual fica no campo `version` do `package.json`, aparece na interface ao lado do nome e é injetada no build pelo `vite.config.ts`. O histórico e as regras de incremento estão no [CHANGELOG.md](CHANGELOG.md).
+
+## Tema e cor principal
+
+Tudo fica em um único arquivo, [`src/theme.css`](src/theme.css):
+
+```css
+/* 1. Paleta (fundos, textos, bordas, forma de onda…) */
+@import "./themes/tokyo-night.css";
+
+/* 2. Cor principal (destaques) */
+:root {
+  --brand: #d9fe16;            /* cor principal */
+  --brand-foreground: #1c2100; /* texto/ícones sobre a cor principal */
+}
+```
+
+**Paletas disponíveis** (em [`src/themes/`](src/themes)):
+
+| Arquivo           | Modo escuro           | Modo claro      |
+| ----------------- | --------------------- | --------------- |
+| `tokyo-night.css` | Tokyo Night (Night)   | Tokyo Night Day |
+| `neutral.css`     | Cinza neutro (shadcn) | Branco neutro   |
+
+Para criar outra paleta, copie um desses arquivos e ajuste as variáveis. Cada arquivo define o modo claro em `:root` e o escuro em `.dark`.
+
+**Cor principal:** troque `--brand` por qualquer cor CSS (`#hex`, `rgb()`, `hsl()`, `oklch()`). Os demais tons de destaque (trechos, alças do editor, texto destacado legível no tema claro) são derivados dela. Ajuste `--brand-foreground` para um tom escuro se a cor principal for clara, ou claro (ex.: `#ffffff`) se ela for escura. O próprio `theme.css` lista os destaques da paleta Tokyo Night (azul `#7aa2f7`, roxo `#bb9af7` etc.). Nas classes do Tailwind, use `bg-brand`, `text-brand`, `border-brand` e `text-brand-foreground`.
+
+O ícone da aba (`public/favicon.svg`) e as cores da barra do navegador no celular (`<meta name="theme-color">` em `index.html`) são estáticos: se mudar a paleta, atualize-os também.
 
 ## Formato do arquivo JSON (versão 2)
 
@@ -77,7 +110,7 @@ Para testar em um celular na mesma rede, use `npm run dev -- --host`. Fora de `l
 | `durationSeconds`     | não         | Duração do áudio em segundos.                                          |
 | `importantMoments`    | sim         | Lista de marcações (pode ser vazia).                                   |
 | `id`                  | —           | Identificador único. Se faltar ou se repetir, um novo é gerado.        |
-| `timeSeconds`         | sim         | Instante marcado, em segundos (≥ 0).                                   |
+| `timeSeconds`         | sim         | Instante marcado, em segundos (≥ 0). Sempre fica dentro do trecho: se o trecho for ajustado para não incluí-lo, ele acompanha o início ou o fim. |
 | `timeFormatted`       | não         | `HH:MM:SS` calculado a partir de `timeSeconds` (ignorado na leitura).  |
 | `startSeconds`        | não (v2)    | Início do trecho, em segundos. Sem ele, usa-se o trecho padrão (±2 s). |
 | `endSeconds`          | não (v2)    | Fim do trecho, em segundos (maior que `startSeconds`).                 |
@@ -128,7 +161,9 @@ src/
 │   ├── projectImportService.ts  # Validação do JSON, leitura de ZIP, prévia de importação
 │   └── projectExportService.ts  # Montagem do JSON, ZIP e download
 ├── lib/                         # Formatação de tempo, nomes de arquivo seguros, ids
-└── types/project.ts             # Tipos do domínio e do formato de arquivo
+├── types/project.ts             # Tipos do domínio e do formato de arquivo
+├── theme.css                    # 🎨 Escolha da paleta e cor principal
+└── themes/                      # Paletas: tokyo-night.css, neutral.css
 ```
 
 Stack: React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui (Radix), Lucide React, JSZip (carregado sob demanda) e Vitest.

@@ -60,3 +60,27 @@ export function computeView({ startSeconds, endSeconds }: TimeRange, duration: n
   }
   return { start, end }
 }
+
+/** Mantém o instante marcado dentro do trecho (o trecho é a referência do momento). */
+export function clampTimeToRange(timeSeconds: number, { startSeconds, endSeconds }: TimeRange): number {
+  return Math.min(Math.max(timeSeconds, startSeconds), endSeconds)
+}
+
+/** Ordem cronológica dos momentos: pelo início do trecho, depois pelo instante marcado. */
+export function compareByRange(
+  a: TimeRange & { timeSeconds: number },
+  b: TimeRange & { timeSeconds: number },
+): number {
+  return a.startSeconds - b.startSeconds || a.timeSeconds - b.timeSeconds
+}
+
+/** Id do momento cujo trecho contém o instante (o de início mais recente, se houver vários). */
+export function findMomentAt<T extends TimeRange & { id: string }>(moments: T[], timeSeconds: number): string | null {
+  let found: T | null = null
+  for (const moment of moments) {
+    if (moment.startSeconds <= timeSeconds && timeSeconds <= moment.endSeconds) {
+      if (!found || moment.startSeconds >= found.startSeconds) found = moment
+    }
+  }
+  return found?.id ?? null
+}

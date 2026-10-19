@@ -71,20 +71,22 @@ export function AudioPlayer({
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <PlaybackTimeline
-          duration={duration}
-          currentTime={currentTime}
-          waveform={waveform}
-          moments={moments}
-          selectedId={selectedMoment?.id ?? null}
-          disabled={disabled}
-          onSeek={player.seek}
-          onSelectMoment={onSelectMoment}
-        />
+        <div className="flex flex-col gap-2">
+          <PlaybackTimeline
+            duration={duration}
+            currentTime={currentTime}
+            waveform={waveform}
+            moments={moments}
+            selectedId={selectedMoment?.id ?? null}
+            disabled={disabled}
+            onSeek={player.seek}
+            onSelectMoment={onSelectMoment}
+          />
 
-        <div className="-mt-2 flex items-center justify-between font-mono text-xs text-muted-foreground tabular-nums">
-          <span aria-label="Tempo atual">{formatTime(currentTime)}</span>
-          <span aria-label="Duração total">{formatTime(duration)}</span>
+          <div className="flex items-center justify-between font-mono text-xs text-muted-foreground tabular-nums">
+            <span aria-label="Tempo atual">{formatTime(currentTime)}</span>
+            <span aria-label="Duração total">{formatTime(duration)}</span>
+          </div>
         </div>
 
         <div className="flex items-center justify-center gap-2">
@@ -133,7 +135,7 @@ export function AudioPlayer({
               <Button
                 variant="outline"
                 size="sm"
-                className="ml-2 w-14 font-mono tabular-nums"
+                className="w-14 font-mono tabular-nums"
                 disabled={disabled}
                 onClick={player.cycleRate}
                 aria-label={`Velocidade de reprodução: ${player.playbackRate}x`}

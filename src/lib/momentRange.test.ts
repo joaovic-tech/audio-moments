@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { clampRange, computeView, defaultRange, MIN_RANGE_SECONDS, rangeLength } from './momentRange'
+import {
+  clampRange,
+  clampTimeToRange,
+  compareByRange,
+  computeView,
+  defaultRange,
+  findMomentAt,
+  MIN_RANGE_SECONDS,
+  rangeLength,
+} from './momentRange'
 
 describe('defaultRange', () => {
   it('inclui alguns segundos antes e depois do instante marcado', () => {
@@ -46,5 +55,31 @@ describe('computeView', () => {
 
   it('não ultrapassa a duração de áudios curtos', () => {
     expect(computeView({ startSeconds: 1, endSeconds: 3 }, 4)).toEqual({ start: 0, end: 4 })
+  })
+})
+
+describe('relação entre instante marcado e trecho', () => {
+  it('mantém o instante dentro do trecho ajustado', () => {
+    expect(clampTimeToRange(2.4, { startSeconds: 0.7, endSeconds: 9.7 })).toBe(2.4)
+    expect(clampTimeToRange(2.4, { startSeconds: 5, endSeconds: 9 })).toBe(5)
+    expect(clampTimeToRange(12, { startSeconds: 5, endSeconds: 9 })).toBe(9)
+  })
+
+  it('ordena pelo início do trecho', () => {
+    const a = { id: 'a', timeSeconds: 10, startSeconds: 8, endSeconds: 12 }
+    const b = { id: 'b', timeSeconds: 20, startSeconds: 2, endSeconds: 25 }
+    expect([a, b].sort(compareByRange).map((m) => m.id)).toEqual(['b', 'a'])
+  })
+
+  it('encontra o momento em reprodução pelo trecho', () => {
+    const moments = [
+      { id: 'a', startSeconds: 0, endSeconds: 10 },
+      { id: 'b', startSeconds: 5, endSeconds: 8 },
+      { id: 'c', startSeconds: 60, endSeconds: 70 },
+    ]
+    expect(findMomentAt(moments, 3)).toBe('a')
+    expect(findMomentAt(moments, 6)).toBe('b')
+    expect(findMomentAt(moments, 30)).toBeNull()
+    expect(findMomentAt(moments, 70)).toBe('c')
   })
 })

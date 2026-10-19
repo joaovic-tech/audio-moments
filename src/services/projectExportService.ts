@@ -1,4 +1,5 @@
 import { resolveProjectName, toSafeFileName } from '@/lib/fileName'
+import { compareByRange } from '@/lib/momentRange'
 import { formatTime, roundSeconds } from '@/lib/time'
 import { PROJECT_FILE_VERSION, type ImportantMoment, type Project, type ProjectFile } from '@/types/project'
 
@@ -35,7 +36,7 @@ export function findIncompleteMoments(moments: ImportantMoment[]): ImportantMome
 
 /** Monta o conteúdo do `momentos-importantes.json` (formato versão 2). */
 export function buildProjectFile(project: Project, audioFileName: string): ProjectFile {
-  const sorted = [...project.moments].sort((a, b) => a.timeSeconds - b.timeSeconds)
+  const sorted = [...project.moments].sort(compareByRange)
   const lastMoment = Math.max(0, ...sorted.map((moment) => Math.max(moment.timeSeconds, moment.endSeconds)))
   const knownDuration = project.audio?.durationSeconds
   const durationSeconds =

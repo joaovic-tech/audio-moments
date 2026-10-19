@@ -1,32 +1,44 @@
-import type { ReactNode } from 'react'
-import { Download, Loader2, Pause, Pencil, Play, Scissors, Trash2 } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { ImportantMomentForm } from '@/components/ImportantMomentForm'
-import { rangeLength } from '@/lib/momentRange'
-import { formatDurationLabel, formatTime } from '@/lib/time'
-import { cn } from '@/lib/utils'
-import type { ImportantMoment } from '@/types/project'
+import type { ReactNode } from "react";
+import {
+  Download,
+  Loader2,
+  Pause,
+  Pencil,
+  Play,
+  Scissors,
+  Trash2,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { ImportantMomentForm } from "@/components/ImportantMomentForm";
+import { rangeLength } from "@/lib/momentRange";
+import { formatDurationLabel, formatTime, formatTimePrecise } from "@/lib/time";
+import { cn } from "@/lib/utils";
+import type { ImportantMoment } from "@/types/project";
 
 interface ImportantMomentItemProps {
-  moment: ImportantMoment
-  index: number
-  isEditing: boolean
-  isActive: boolean
-  isSelected: boolean
-  isPlayingRange: boolean
-  isDownloading: boolean
-  autoFocus: boolean
+  moment: ImportantMoment;
+  index: number;
+  isEditing: boolean;
+  isActive: boolean;
+  isSelected: boolean;
+  isPlayingRange: boolean;
+  isDownloading: boolean;
+  autoFocus: boolean;
   /** Há áudio disponível (falso durante a gravação). */
-  hasAudio: boolean
-  onToggleRange: () => void
-  onAdjust: () => void
-  onDownload: () => void
-  onEdit: () => void
-  onSave: (values: Pick<ImportantMoment, 'name' | 'observation'>) => void
-  onCancel: () => void
-  onDelete: () => void
+  hasAudio: boolean;
+  onToggleRange: () => void;
+  onAdjust: () => void;
+  onDownload: () => void;
+  onEdit: () => void;
+  onSave: (values: Pick<ImportantMoment, "name" | "observation">) => void;
+  onCancel: () => void;
+  onDelete: () => void;
 }
 
 function IconAction({
@@ -37,12 +49,12 @@ function IconAction({
   onClick,
   children,
 }: {
-  label: string
-  disabledLabel?: string
-  disabled?: boolean
-  className?: string
-  onClick: () => void
-  children: ReactNode
+  label: string;
+  disabledLabel?: string;
+  disabled?: boolean;
+  className?: string;
+  onClick: () => void;
+  children: ReactNode;
 }) {
   return (
     <Tooltip>
@@ -60,9 +72,11 @@ function IconAction({
           </Button>
         </span>
       </TooltipTrigger>
-      <TooltipContent>{disabled && disabledLabel ? disabledLabel : label}</TooltipContent>
+      <TooltipContent>
+        {disabled && disabledLabel ? disabledLabel : label}
+      </TooltipContent>
     </Tooltip>
-  )
+  );
 }
 
 export function ImportantMomentItem({
@@ -83,22 +97,28 @@ export function ImportantMomentItem({
   onCancel,
   onDelete,
 }: ImportantMomentItemProps) {
-  const time = formatTime(moment.timeSeconds)
-  const displayName = moment.name || 'Sem nome'
-  const afterRecording = 'Disponível após finalizar a gravação'
+  // O botão toca o trecho: mostra onde ele começa (acompanha os ajustes).
+  const time = formatTime(moment.startSeconds);
+  const displayName = moment.name || "Sem nome";
+  const afterRecording = "Disponível após finalizar a gravação";
 
   return (
     <li
       className={cn(
-        'rounded-xl border bg-card p-3 transition-colors',
-        isActive && !isEditing && 'border-highlight/60 bg-highlight/5',
-        isSelected && !isEditing && 'ring-2 ring-highlight/60',
-        isEditing && 'border-ring/60 shadow-sm',
+        "rounded-xl border bg-card p-3 transition-colors",
+        isActive && !isEditing && "border-highlight/60 bg-highlight/5",
+        isSelected && !isEditing && "ring-2 ring-highlight/60 ring-inset",
+        isEditing && "border-ring/60 shadow-sm",
       )}
-      aria-current={isActive ? 'true' : undefined}
+      aria-current={isActive ? "true" : undefined}
     >
       {isEditing ? (
-        <ImportantMomentForm moment={moment} autoFocus={autoFocus} onSave={onSave} onCancel={onCancel} />
+        <ImportantMomentForm
+          moment={moment}
+          autoFocus={autoFocus}
+          onSave={onSave}
+          onCancel={onCancel}
+        />
       ) : (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-3">
           <div className="flex min-w-0 flex-1 items-start gap-3">
@@ -111,33 +131,53 @@ export function ImportantMomentItem({
                     className="h-8 gap-1.5 font-mono tabular-nums"
                     onClick={onToggleRange}
                     disabled={!hasAudio}
-                    aria-label={`${isPlayingRange ? 'Pausar' : 'Ouvir'} trecho de ${displayName}`}
+                    aria-label={`${isPlayingRange ? "Pausar" : "Ouvir"} trecho de ${displayName}`}
                   >
-                    {isPlayingRange ? <Pause className="fill-current" /> : <Play className="fill-current" />}
+                    {isPlayingRange ? (
+                      <Pause className="fill-current" />
+                    ) : (
+                      <Play className="fill-current" />
+                    )}
                     {time}
                   </Button>
                 </span>
               </TooltipTrigger>
-              <TooltipContent>{hasAudio ? 'Ouvir o trecho deste momento' : afterRecording}</TooltipContent>
+              <TooltipContent>
+                {hasAudio
+                  ? `Ouvir o trecho a partir de ${formatTimePrecise(moment.startSeconds)} (marcado em ${formatTime(moment.timeSeconds)})`
+                  : afterRecording}
+              </TooltipContent>
             </Tooltip>
 
-            <div className="min-w-0 flex-1 pt-1">
+            <div className="flex min-w-0 flex-1 flex-col gap-1 pt-1">
               <p className="flex flex-wrap items-center gap-2 text-sm leading-tight font-medium">
                 <span className="sr-only">Momento {index + 1}: </span>
-                <span className={cn('break-words', !moment.name && 'text-destructive')}>{displayName}</span>
+                <span
+                  className={cn(
+                    "wrap-break-word",
+                    !moment.name && "text-destructive",
+                  )}
+                >
+                  {displayName}
+                </span>
                 {!moment.name && (
                   <Badge variant="destructive" className="font-normal">
                     Nome pendente
                   </Badge>
                 )}
               </p>
-              <p className="mt-1 font-mono text-[11px] text-muted-foreground tabular-nums">
-                <Scissors className="mr-1 inline size-3 align-[-1px]" aria-hidden="true" />
-                {formatTime(moment.startSeconds)} → {formatTime(moment.endSeconds)} ·{' '}
-                {formatDurationLabel(rangeLength(moment))}
+              <p className="flex flex-wrap items-center gap-x-1 font-mono text-[11px] text-muted-foreground tabular-nums">
+                <Scissors className="size-3 shrink-0" aria-hidden="true" />
+                <span className="whitespace-nowrap">
+                  {formatTimePrecise(moment.startSeconds)} →{" "}
+                  {formatTimePrecise(moment.endSeconds)}
+                </span>
+                <span className="whitespace-nowrap">
+                  · {formatDurationLabel(rangeLength(moment))}
+                </span>
               </p>
               {moment.observation && (
-                <p className="mt-1 text-sm break-words whitespace-pre-wrap text-muted-foreground">
+                <p className="text-sm wrap-break-word whitespace-pre-wrap text-muted-foreground">
                   {moment.observation}
                 </p>
               )}
@@ -149,18 +189,26 @@ export function ImportantMomentItem({
               label="Ajustar trecho"
               disabledLabel={afterRecording}
               disabled={!hasAudio}
-              className={cn(isSelected && 'bg-highlight/20 text-highlight-strong')}
+              className={cn(
+                isSelected && "bg-highlight/20 text-highlight-strong",
+              )}
               onClick={onAdjust}
             >
               <Scissors />
             </IconAction>
             <IconAction
-              label={isDownloading ? 'Preparando trecho…' : 'Baixar trecho'}
-              disabledLabel={isDownloading ? 'Preparando trecho…' : afterRecording}
+              label={isDownloading ? "Preparando trecho…" : "Baixar trecho"}
+              disabledLabel={
+                isDownloading ? "Preparando trecho…" : afterRecording
+              }
               disabled={!hasAudio || isDownloading}
               onClick={onDownload}
             >
-              {isDownloading ? <Loader2 className="animate-spin" /> : <Download />}
+              {isDownloading ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <Download />
+              )}
             </IconAction>
             <IconAction label={`Editar ${displayName}`} onClick={onEdit}>
               <Pencil />
@@ -176,5 +224,5 @@ export function ImportantMomentItem({
         </div>
       )}
     </li>
-  )
+  );
 }

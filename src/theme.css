@@ -1,0 +1,36 @@
+/*
+ * ============================================================
+ *  🎨 TEMA DO SITE
+ * ============================================================
+ *  1. PALETA: fundos, textos, bordas, forma de onda etc.
+ *     Troque o arquivo importado abaixo para mudar o tema todo:
+ *       ./themes/tokyo-night.css  → Tokyo Night (Night no escuro, Day no claro)
+ *       ./themes/neutral.css      → tons neutros (tema original)
+ */
+@import "./themes/tokyo-night.css";
+
+/*
+ *  2. COR PRINCIPAL: botão "Marcar momento importante",
+ *     trechos, marcadores, alças do editor, botões principais.
+ *     Todos os outros tons de destaque derivam dela.
+ *
+ *     Aceita qualquer cor CSS: #hex, rgb(), hsl(), oklch()…
+ *     Em classes do Tailwind: `bg-brand`, `text-brand`,
+ *     `border-brand`, `text-brand-foreground` etc.
+ *
+ *     Destaques da própria paleta Tokyo Night, se quiser trocar:
+ *       azul #7aa2f7 · roxo #bb9af7 · ciano #7dcfff
+ *       verde #9ece6a · laranja #ff9e64
+ * ============================================================
+ */
+:root {
+  /* Cor principal (destaques). */
+  --brand: #d9fe16;
+
+  /*
+   * Cor do texto e dos ícones sobre a cor principal.
+   * Use um tom escuro para cores principais claras (como esta)
+   * e um tom claro (ex.: #ffffff) para cores principais escuras.
+   */
+  --brand-foreground: #1c2100;
+}

@@ -1,0 +1,90 @@
+/*
+ * Tema Tokyo Night
+ * Paleta original: https://github.com/folke/tokyonight.nvim
+ *
+ *  - Modo claro  → "Tokyo Night Day"
+ *  - Modo escuro → "Tokyo Night" (variante Night)
+ *
+ * Alguns tons de texto secundário foram levemente ajustados
+ * para manter contraste mínimo de 4,5:1 (WCAG AA).
+ */
+
+/* ---------- Tokyo Night Day (modo claro) ---------- */
+:root {
+  --background: #e1e2e7;
+  --foreground: #3760bf;
+  --card: #f4f4f7;
+  --card-foreground: #3760bf;
+  --popover: #f4f4f7;
+  --popover-foreground: #3760bf;
+  --primary: #2e7de9;
+  --primary-foreground: #ffffff;
+  --secondary: #e1e2e7;
+  --secondary-foreground: #3760bf;
+  --muted: #e1e2e7;
+  --muted-foreground: #525f96;
+  --accent: #d0d5e3;
+  --accent-foreground: #3760bf;
+  --destructive: #b03636;
+  --border: #c4c8da;
+  --input: #a8aecb;
+  --ring: #2e7de9;
+  --chart-1: #2e7de9;
+  --chart-2: #007197;
+  --chart-3: #9854f1;
+  --chart-4: #587539;
+  --chart-5: #b15c00;
+  --sidebar: #d0d5e3;
+  --sidebar-foreground: #3760bf;
+  --sidebar-primary: #2e7de9;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #c4c8da;
+  --sidebar-accent-foreground: #3760bf;
+  --sidebar-border: #c4c8da;
+  --sidebar-ring: #2e7de9;
+
+  /* Específicos da aplicação */
+  --recording: #f52a65;
+  --waveform: #a8aecb;
+  --waveform-played: #2e7de9;
+}
+
+/* ---------- Tokyo Night (modo escuro) ---------- */
+.dark {
+  --background: #1a1b26;
+  --foreground: #c0caf5;
+  --card: #1f2335;
+  --card-foreground: #c0caf5;
+  --popover: #1f2335;
+  --popover-foreground: #c0caf5;
+  --primary: #7aa2f7;
+  --primary-foreground: #1a1b26;
+  --secondary: #292e42;
+  --secondary-foreground: #c0caf5;
+  --muted: #292e42;
+  --muted-foreground: #828bb8;
+  --accent: #292e42;
+  --accent-foreground: #c0caf5;
+  --destructive: #f7768e;
+  --border: #2f3549;
+  --input: #3b4261;
+  --ring: #7aa2f7;
+  --chart-1: #7aa2f7;
+  --chart-2: #7dcfff;
+  --chart-3: #bb9af7;
+  --chart-4: #9ece6a;
+  --chart-5: #ff9e64;
+  --sidebar: #16161e;
+  --sidebar-foreground: #a9b1d6;
+  --sidebar-primary: #7aa2f7;
+  --sidebar-primary-foreground: #1a1b26;
+  --sidebar-accent: #292e42;
+  --sidebar-accent-foreground: #c0caf5;
+  --sidebar-border: #2f3549;
+  --sidebar-ring: #7aa2f7;
+
+  /* Específicos da aplicação */
+  --recording: #f7768e;
+  --waveform: #3b4261;
+  --waveform-played: #7aa2f7;
+}

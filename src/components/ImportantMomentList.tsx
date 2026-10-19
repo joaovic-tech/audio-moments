@@ -1,26 +1,36 @@
-import { Bookmark } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ImportantMomentItem } from '@/components/ImportantMomentItem'
-import { Kbd } from '@/components/Kbd'
-import type { ImportantMoment } from '@/types/project'
+import { Bookmark } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { ImportantMomentItem } from "@/components/ImportantMomentItem";
+import { Kbd } from "@/components/Kbd";
+import type { ImportantMoment } from "@/types/project";
 
 interface ImportantMomentListProps {
-  moments: ImportantMoment[]
-  editingIds: ReadonlySet<string>
-  focusId: string | null
-  activeId: string | null
-  selectedId: string | null
-  playingRangeId: string | null
-  downloadingId: string | null
-  hasAudio: boolean
-  onToggleRange: (moment: ImportantMoment) => void
-  onAdjust: (moment: ImportantMoment) => void
-  onDownload: (moment: ImportantMoment) => void
-  onEdit: (moment: ImportantMoment) => void
-  onSave: (moment: ImportantMoment, values: Pick<ImportantMoment, 'name' | 'observation'>) => void
-  onCancel: (moment: ImportantMoment) => void
-  onDelete: (moment: ImportantMoment) => void
+  moments: ImportantMoment[];
+  editingIds: ReadonlySet<string>;
+  focusId: string | null;
+  activeId: string | null;
+  selectedId: string | null;
+  playingRangeId: string | null;
+  downloadingId: string | null;
+  hasAudio: boolean;
+  onToggleRange: (moment: ImportantMoment) => void;
+  onAdjust: (moment: ImportantMoment) => void;
+  onDownload: (moment: ImportantMoment) => void;
+  onEdit: (moment: ImportantMoment) => void;
+  onSave: (
+    moment: ImportantMoment,
+    values: Pick<ImportantMoment, "name" | "observation">,
+  ) => void;
+  onCancel: (moment: ImportantMoment) => void;
+  onDelete: (moment: ImportantMoment) => void;
 }
 
 /** Lista cronológica dos momentos importantes do áudio atual. */
@@ -42,20 +52,25 @@ export function ImportantMomentList({
   onDelete,
 }: ImportantMomentListProps) {
   return (
-    <Card className="h-full">
+    // No desktop, a altura acompanha a coluna da esquerda (h-0 + min-h-full não
+    // influencia a altura da linha) e a lista rola internamente quando cresce.
+    <Card className="lg:h-0 lg:min-h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bookmark className="size-4 text-muted-foreground" />
           Momentos importantes
         </CardTitle>
-        <CardDescription>Em ordem cronológica. Clique no tempo para ouvir o trecho de cada momento.</CardDescription>
+        <CardDescription>
+          Em ordem cronológica. Clique no tempo para ouvir o trecho de cada
+          momento.
+        </CardDescription>
         <CardAction>
           <Badge variant="secondary" aria-label={`${moments.length} marcações`}>
             {moments.length}
           </Badge>
         </CardAction>
       </CardHeader>
-      <CardContent>
+      <CardContent className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
         {moments.length === 0 ? (
           <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-12 text-center">
             <div className="flex size-11 items-center justify-center rounded-full bg-highlight/15 text-highlight-strong">
@@ -64,11 +79,12 @@ export function ImportantMomentList({
             <div className="grid gap-1">
               <p className="text-sm font-medium">Nenhum momento marcado</p>
               <p className="max-w-xs text-sm text-muted-foreground">
-                Durante a gravação ou a reprodução, clique em <strong>“Marcar momento importante”</strong>
+                Durante a gravação ou a reprodução, clique em{" "}
+                <strong>“Marcar momento importante”</strong>
                 <span className="hidden sm:inline">
-                  {' '}
+                  {" "}
                   ou pressione <Kbd>M</Kbd>
-                </span>{' '}
+                </span>{" "}
                 para registrar o instante atual. Depois, dê um nome a ele.
               </p>
             </div>
@@ -100,5 +116,5 @@ export function ImportantMomentList({
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

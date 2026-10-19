@@ -146,6 +146,13 @@ describe('parseProjectJson — trechos (versão 2)', () => {
     expect(result.value.warnings).toHaveLength(1)
   })
 
+  it('mantém o instante marcado dentro do trecho', () => {
+    const result = parse(v2({ startSeconds: 50, endSeconds: 60 }))
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.value.moments[0]).toMatchObject({ timeSeconds: 50, startSeconds: 50, endSeconds: 60 })
+  })
+
   it('ajusta o fim do trecho que passa da duração do áudio', () => {
     const result = parse(v2({ startSeconds: 350, endSeconds: 400 }))
     expect(result.ok).toBe(true)
