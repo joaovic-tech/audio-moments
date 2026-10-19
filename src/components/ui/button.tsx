@@ -8,11 +8,14 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-highlight text-highlight-foreground hover:bg-highlight/80",
+        // Modo claro: contorno verde-lima e texto grafite para o botão não "sumir" no branco;
+        // desabilitado vira um cinza neutro em vez de um amarelo lavado.
+        default:
+          "bg-highlight text-highlight-foreground hover:bg-highlight/80 light:border-accent-outline light:font-semibold light:hover:bg-highlight/85 light:disabled:border-slate-300 light:disabled:bg-slate-200 light:disabled:text-slate-400 light:disabled:opacity-100",
         outline:
-          "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+          "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50 light:border-slate-300 light:bg-white light:text-slate-800 light:hover:border-slate-400 light:hover:bg-slate-100",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
+          "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground light:border-slate-300 light:bg-white light:text-slate-800 light:hover:border-slate-400 light:hover:bg-slate-100",
         ghost:
           "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
         destructive:

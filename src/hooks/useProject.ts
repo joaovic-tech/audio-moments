@@ -9,6 +9,13 @@ type Action =
   | { type: 'clearContent' }
   | { type: 'setRecordedAudio'; audio: ProjectAudio }
   | { type: 'loadImported'; audio: ProjectAudio; name: string; moments: ImportantMoment[] }
+  | {
+      type: 'restore'
+      audio: ProjectAudio
+      name: string
+      moments: ImportantMoment[]
+      hasUnsavedChanges: boolean
+    }
   | { type: 'addMoment'; moment: ImportantMoment }
   | { type: 'updateMoment'; id: string; changes: Pick<ImportantMoment, 'name' | 'observation'> }
   | { type: 'updateMomentRange'; id: string; startSeconds: number; endSeconds: number; duration: number | null }
@@ -53,6 +60,15 @@ function reducer(state: Project, action: Action): Project {
         moments: [...action.moments].sort(byTime),
         hasUnsavedChanges: false,
       }
+    case 'restore':
+      // Só restaura sobre um projeto vazio (o usuário pode ter começado algo enquanto a leitura terminava).
+      if (state.audio !== null || state.moments.length > 0) return state
+      return {
+        name: action.name,
+        audio: action.audio,
+        moments: clampMoments(action.moments, action.audio.durationSeconds).sort(byTime),
+        hasUnsavedChanges: action.hasUnsavedChanges,
+      }
     case 'addMoment':
       return { ...state, moments: [...state.moments, action.moment].sort(byTime), hasUnsavedChanges: true }
     case 'updateMoment':
@@ -91,6 +107,12 @@ export function useProject() {
   const loadImported = useCallback(
     (audio: ProjectAudio, name: string, moments: ImportantMoment[]) =>
       dispatch({ type: 'loadImported', audio, name, moments }),
+    [],
+  )
+  /** Carrega o projeto salvo automaticamente no navegador. */
+  const restore = useCallback(
+    (audio: ProjectAudio, name: string, moments: ImportantMoment[], hasUnsavedChanges: boolean) =>
+      dispatch({ type: 'restore', audio, name, moments, hasUnsavedChanges }),
     [],
   )
   /**
@@ -132,6 +154,7 @@ export function useProject() {
       clearContent,
       setRecordedAudio,
       loadImported,
+      restore,
       addMoment,
       updateMoment,
       updateMomentRange,
@@ -145,6 +168,7 @@ export function useProject() {
       clearContent,
       setRecordedAudio,
       loadImported,
+      restore,
       addMoment,
       updateMoment,
       updateMomentRange,

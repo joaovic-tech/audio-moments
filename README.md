@@ -8,7 +8,8 @@ Plataforma web responsiva para **gravar conversas pelo microfone, marcar momento
 - **Marcação de momentos** com o botão **“Marcar momento importante”** (ou a tecla <kbd>M</kbd>). O tempo registrado é a posição real no áudio: o cronômetro desconta as pausas. Depois da gravação, ou em um áudio importado, a marcação usa a posição atual da reprodução. Após cada clique o botão fica **bloqueado por 2 segundos**, para evitar marcações duplicadas.
 - **Trecho de cada momento**: toda marcação recebe um trecho padrão de **2 s antes até 2 s depois** do instante marcado. No player, um editor no estilo dos editores de áudio mostra a forma de onda ampliada, com **alças arrastáveis de início e fim**. As alças também respondem às setas do teclado (0,1 s, ou 1 s com Shift), e os botões “Início aqui”/“Fim aqui” usam a posição atual da reprodução. A linha do tempo geral mostra a forma de onda e o trecho de todos os momentos.
 - **Ouvir e baixar o trecho**: “Ouvir trecho” toca só o intervalo e para no fim. **“Baixar trecho”** baixa apenas aquele momento, em WAV (veja as limitações).
-- **Lista de momentos** em ordem cronológica (pelo início do trecho), com nome (obrigatório), observação (opcional), início/fim/duração do trecho e as ações ouvir trecho, ajustar trecho, baixar trecho, editar e excluir (com confirmação).
+- **Lista de momentos** em ordem cronológica (pelo início do trecho), com nome (obrigatório), observação (opcional), início/fim/duração do trecho e as ações ouvir trecho, recortar (ajustar) trecho, baixar trecho, editar e excluir (com confirmação, separada das demais ações). Clicar no título ou na observação edita o texto ali mesmo (Enter/Ctrl+Enter salva, Esc cancela). Com 3 ou mais momentos aparece a busca **“Buscar nos momentos...”**, que filtra por título e observação em tempo real (sem diferenciar acentos e maiúsculas).
+- **Layout em dois modos**: sem áudio, o gravador ocupa o painel principal, com **“Iniciar gravação”** e uma área para **arrastar ou escolher um arquivo de áudio** (.mp3, .wav, .m4a… ou o .zip exportado); o card de reprodução fica oculto. Com áudio, o gravador vira um cabeçalho compacto (nome, origem e duração, **Nova gravação** e **Descartar**) e o player sobe, com o botão **“Marcar momento importante”** junto aos controles. No desktop, as duas colunas ficam fixas abaixo do cabeçalho e a lista de momentos rola dentro do próprio painel.
 - **Player**: tocar/pausar, voltar/avançar 10 s, barra de progresso navegável, tempo atual/duração e velocidade de reprodução.
 - **Importar projeto**: áudio obrigatório (WAV, MP3, M4A, WebM, OGG, FLAC, AAC), JSON opcional, ou diretamente o `.zip` exportado pela aplicação. Tudo é validado antes de carregar, e a substituição de um projeto aberto pede confirmação.
 - **Exportar projeto**:
@@ -16,7 +17,8 @@ Plataforma web responsiva para **gravar conversas pelo microfone, marcar momento
   - sem marcações, baixa **somente o áudio**, no formato original (sem ZIP nem JSON vazio).
 - **Nome do projeto**, usado na interface e nos arquivos (convertido para um nome de arquivo seguro). O padrão é `gravacao-AAAA-MM-DD`.
 - Tema claro/escuro com botão de alternância no canto superior direito (a escolha fica salva no navegador; sem escolha, segue o sistema). A versão da plataforma aparece ao lado do nome.
-- Layout para celular (com barra fixa de marcação durante a gravação) e aviso antes de fechar a página com alterações não exportadas.
+- **Salvamento automático no navegador (IndexedDB)**: o áudio bruto (Blob, sem Base64) e o JSON do projeto (nome e marcações) são salvos automaticamente e restaurados ao reabrir a página. Edições de texto e o arraste das alças são salvos com debounce de 300 ms. **Descartar** apaga também o projeto salvo.
+- Layout para celular (com barra fixa de marcação durante a gravação) e aviso antes de fechar a página durante uma gravação em andamento (ou, se o navegador não permitir o salvamento automático, com alterações não exportadas).
 
 ## Requisitos
 
@@ -67,14 +69,14 @@ Tudo fica em um único arquivo, [`src/theme.css`](src/theme.css):
 
 **Paletas disponíveis** (em [`src/themes/`](src/themes)):
 
-| Arquivo           | Modo escuro           | Modo claro      |
-| ----------------- | --------------------- | --------------- |
-| `tokyo-night.css` | Tokyo Night (Night)   | Tokyo Night Day |
-| `neutral.css`     | Cinza neutro (shadcn) | Branco neutro   |
+| Arquivo           | Modo escuro           | Modo claro                       |
+| ----------------- | --------------------- | -------------------------------- |
+| `tokyo-night.css` | Tokyo Night (Night)   | Neutros Slate de alto contraste |
+| `neutral.css`     | Cinza neutro (shadcn) | Branco neutro                    |
 
 Para criar outra paleta, copie um desses arquivos e ajuste as variáveis. Cada arquivo define o modo claro em `:root` e o escuro em `.dark`.
 
-**Cor principal:** troque `--brand` por qualquer cor CSS (`#hex`, `rgb()`, `hsl()`, `oklch()`). Os demais tons de destaque (trechos, alças do editor, texto destacado legível no tema claro) são derivados dela. Ajuste `--brand-foreground` para um tom escuro se a cor principal for clara, ou claro (ex.: `#ffffff`) se ela for escura. O próprio `theme.css` lista os destaques da paleta Tokyo Night (azul `#7aa2f7`, roxo `#bb9af7` etc.). Nas classes do Tailwind, use `bg-brand`, `text-brand`, `border-brand` e `text-brand-foreground`.
+**Cor principal:** troque `--brand` por qualquer cor CSS (`#hex`, `rgb()`, `hsl()`, `oklch()`). No modo escuro, os demais tons de destaque (trechos, alças do editor) são derivados dela. No modo claro, a cor principal continua no preenchimento dos botões, mas linhas finas, marcadores, alças e textos de destaque usam um verde-lima escuro fixo (`--accent-line: #65a30d`, `--accent-outline: #84cc16` e `--highlight-strong: #3f6212`, em `src/index.css`), que não some sobre o branco. Se trocar a cor principal, ajuste esses três também. Ajustes só do modo claro usam a variante `light:` do Tailwind (ex.: `light:bg-slate-50`). Ajuste `--brand-foreground` para um tom escuro se a cor principal for clara, ou claro (ex.: `#ffffff`) se ela for escura. O próprio `theme.css` lista os destaques da paleta Tokyo Night (azul `#7aa2f7`, roxo `#bb9af7` etc.). Nas classes do Tailwind, use `bg-brand`, `text-brand`, `border-brand` e `text-brand-foreground`.
 
 O ícone da aba (`public/favicon.svg`) e as cores da barra do navegador no celular (`<meta name="theme-color">` em `index.html`) são estáticos: se mudar a paleta, atualize-os também.
 
@@ -132,7 +134,10 @@ O ícone da aba (`public/favicon.svg`) e as cores da barra do navegador no celul
 src/
 ├── App.tsx                      # Orquestra estado, gravação, player, importação/exportação
 ├── components/
-│   ├── AudioRecorder.tsx        # Nome, estado, cronômetro, controles e botão de marcação
+│   ├── AudioRecorder.tsx        # Modo gravação/vazio: cronômetro, controles, importação de áudio
+│   ├── AudioDropZone.tsx        # Arrastar e soltar / escolher um arquivo de áudio
+│   ├── ProjectSummaryCard.tsx   # Modo análise: cabeçalho compacto do projeto
+│   ├── ProjectNameField.tsx     # Campo "Nome da gravação"
 │   ├── RecordingControls.tsx    # Iniciar / pausar / retomar / finalizar / descartar
 │   ├── LevelMeter.tsx           # Medidor de nível do microfone
 │   ├── AudioPlayer.tsx          # Player: controles, linha do tempo e editor do trecho
@@ -142,6 +147,7 @@ src/
 │   ├── MarkMomentButton.tsx     # Botão de marcação com bloqueio de 2 s
 │   ├── ImportantMomentList.tsx  # Lista + estado vazio
 │   ├── ImportantMomentItem.tsx  # Item (visualização/edição)
+│   ├── InlineEditableText.tsx   # Edição rápida do título/observação no próprio item
 │   ├── ImportantMomentForm.tsx  # Formulário nome/observação com validação
 │   ├── ImportProjectDialog.tsx  # Seleção e validação dos arquivos importados
 │   ├── ImportExportControls.tsx # Botões do cabeçalho
@@ -151,6 +157,7 @@ src/
 │   ├── useAudioRecorder.ts      # MediaRecorder, cronômetro sem pausas, erros de permissão
 │   ├── useAudioPlayer.ts        # Controle do <audio>, correção da duração de WebM
 │   ├── useProject.ts            # Reducer do projeto (nome, áudio, marcações)
+│   ├── useProjectPersistence.ts # Salvamento automático/restauração no IndexedDB
 │   ├── useObjectUrl.ts          # createObjectURL/revokeObjectURL com ciclo de vida
 │   ├── useWaveform.ts           # Forma de onda calculada localmente
 │   └── ...
@@ -159,6 +166,7 @@ src/
 │   ├── waveformService.ts       # Decodificação e cálculo dos picos da forma de onda
 │   ├── audioClipService.ts      # Recorte do trecho e codificação em WAV
 │   ├── projectImportService.ts  # Validação do JSON, leitura de ZIP, prévia de importação
+│   ├── projectStorageService.ts # IndexedDB nativo: áudio (Blob) + estado (JSON)
 │   └── projectExportService.ts  # Montagem do JSON, ZIP e download
 ├── lib/                         # Formatação de tempo, nomes de arquivo seguros, ids
 ├── types/project.ts             # Tipos do domínio e do formato de arquivo
@@ -170,7 +178,7 @@ Stack: React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui (Radix), Lucide Re
 
 ## Testes e verificações
 
-- `npm test`: 42 testes unitários cobrindo a formatação de tempo, a sanitização de nomes de arquivo, os trechos (padrão de ±2 s, limites, janela do editor), a validação do JSON v1/v2, a exportação (somente áudio × ZIP, bytes preservados, ida e volta sem perdas), a codificação WAV e o cálculo da forma de onda.
+- `npm test`: 57 testes unitários cobrindo a busca nos momentos, a leitura/validação do projeto salvo no IndexedDB, a formatação de tempo, a sanitização de nomes de arquivo, os trechos (padrão de ±2 s, limites, janela do editor), a validação do JSON v1/v2, a exportação (somente áudio × ZIP, bytes preservados, ida e volta sem perdas), a codificação WAV e o cálculo da forma de onda.
 - Testes manuais do trecho: bloqueio de 2 s do botão (incluindo a tecla M), trecho padrão, arrasto real das alças com reenquadramento da janela, ajuste pelo teclado, “Ouvir trecho” parando no fim exato, download do trecho (WAV válido com a duração correta) a partir de WAV e de WebM gravado, e layout em 375 px.
 - Testes manuais no navegador (Chromium), com um stream sintético no lugar do microfone: gravação com pausa/retomada (marcações descontando a pausa), reprodução a partir de uma marcação, exportação ZIP e somente áudio, importação de WAV + JSON (com marcação fora da duração), JSON inválido, arquivo não suportado, reimportação do ZIP, edição/exclusão de marcações importadas, bloqueio de marcação sem nome, confirmações de substituir/descartar, erro de permissão negada e layout em 375 px.
 
@@ -178,7 +186,9 @@ Stack: React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui (Radix), Lucide Re
 
 - O microfone só é acessado depois de um clique em “Iniciar gravação” e da permissão do navegador. Ele é liberado ao finalizar ou descartar.
 - Nenhum dado sai do navegador. Não há transcrição, reconhecimento de fala nem serviços de terceiros.
-- **Não há persistência**: o projeto fica na memória da aba e se perde ao fechar ou recarregar a página. A aplicação avisa antes de fechar se houver alterações não exportadas. Exporte para guardar o trabalho.
+- **Salvamento automático local**: o projeto atual (áudio e marcações) fica salvo no IndexedDB deste navegador e é restaurado ao reabrir a página. Ele não sai do dispositivo e some ao limpar os dados do site, em janelas anônimas ou se o navegador liberar espaço. Exporte o .zip para fazer backup ou transferir o projeto.
+- Apenas **um projeto** é guardado por navegador; abas abertas ao mesmo tempo salvam no mesmo registro (vale a última alteração).
+- Uma gravação **em andamento** ainda não é salva (o áudio só existe ao finalizar); por isso a página avisa antes de fechar durante a gravação.
 
 ## Limitações conhecidas
 

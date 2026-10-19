@@ -21,10 +21,20 @@ export function ImportExportControls({
 }: ImportExportControlsProps) {
   return (
     <div className="flex items-center gap-2">
-      <Button variant="outline" size="lg" onClick={onImport} disabled={!canImport}>
-        <Upload />
-        Importar projeto
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span tabIndex={canImport ? -1 : 0} className="inline-flex">
+            <Button variant="outline" size="lg" onClick={onImport} disabled={!canImport}>
+              <Upload />
+              Importar projeto
+              <span className="font-mono text-xs text-muted-foreground">.zip</span>
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="max-w-64">
+          Abre um projeto exportado (.zip) ou um áudio com o JSON de marcações.
+        </TooltipContent>
+      </Tooltip>
       <Tooltip>
         <TooltipTrigger asChild>
           {/* O span mantém o tooltip funcionando com o botão desabilitado. */}

@@ -1,4 +1,4 @@
-import type { Ref } from 'react'
+import type { ReactNode, Ref } from 'react'
 import { AlertCircle, Headphones, Pause, Play, RotateCcw, RotateCw } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -16,10 +16,11 @@ const SKIP_SECONDS = 10
 
 interface AudioPlayerProps {
   player: AudioPlayerControls
-  audio: ProjectAudio | null
+  audio: ProjectAudio
   moments: ImportantMoment[]
   waveform: WaveformState
-  isRecording: boolean
+  /** Botão "Marcar momento importante" e sua dica, exibidos junto aos controles. */
+  markAction?: ReactNode
   selectedMoment: ImportantMoment | null
   downloadingId: string | null
   onSelectMoment: (moment: ImportantMoment) => void
@@ -42,7 +43,7 @@ export function AudioPlayer({
   audio,
   moments,
   waveform,
-  isRecording,
+  markAction,
   selectedMoment,
   downloadingId,
   onSelectMoment,
@@ -53,21 +54,18 @@ export function AudioPlayer({
   cardRef,
 }: AudioPlayerProps) {
   const { isPlaying, currentTime, duration, error } = player
-  const disabled = !audio
+  const description = audioDescription(audio)
 
   return (
-    <Card ref={cardRef} className="scroll-mt-20">
+    <Card ref={cardRef} className="scroll-mt-24 animate-in duration-300 fade-in slide-in-from-bottom-2">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Headphones className="size-4 text-muted-foreground" />
           Reprodução
         </CardTitle>
-        <CardDescription>
-          {audio
-            ? audioDescription(audio)
-            : isRecording
-              ? 'A reprodução e o ajuste dos trechos ficam disponíveis ao finalizar a gravação.'
-              : 'Nenhum áudio carregado. Grave pelo microfone ou importe um projeto.'}
+        {/* Nomes com hash/UUID longos são cortados; o nome completo fica no title. */}
+        <CardDescription className="max-w-full min-w-0 truncate" title={description}>
+          {description}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -78,7 +76,7 @@ export function AudioPlayer({
             waveform={waveform}
             moments={moments}
             selectedId={selectedMoment?.id ?? null}
-            disabled={disabled}
+            disabled={false}
             onSeek={player.seek}
             onSelectMoment={onSelectMoment}
           />
@@ -95,7 +93,6 @@ export function AudioPlayer({
               <Button
                 variant="ghost"
                 size="icon-lg"
-                disabled={disabled}
                 onClick={() => player.skip(-SKIP_SECONDS)}
                 aria-label={`Voltar ${SKIP_SECONDS} segundos`}
               >
@@ -108,7 +105,6 @@ export function AudioPlayer({
           <Button
             size="icon-lg"
             className="size-14 rounded-full"
-            disabled={disabled}
             onClick={player.toggle}
             aria-label={isPlaying ? 'Pausar reprodução' : 'Reproduzir'}
           >
@@ -120,7 +116,6 @@ export function AudioPlayer({
               <Button
                 variant="ghost"
                 size="icon-lg"
-                disabled={disabled}
                 onClick={() => player.skip(SKIP_SECONDS)}
                 aria-label={`Avançar ${SKIP_SECONDS} segundos`}
               >
@@ -136,7 +131,6 @@ export function AudioPlayer({
                 variant="outline"
                 size="sm"
                 className="w-14 font-mono tabular-nums"
-                disabled={disabled}
                 onClick={player.cycleRate}
                 aria-label={`Velocidade de reprodução: ${player.playbackRate}x`}
               >
@@ -147,7 +141,9 @@ export function AudioPlayer({
           </Tooltip>
         </div>
 
-        {audio && selectedMoment && duration > 0 && (
+        {markAction}
+
+        {selectedMoment && duration > 0 && (
           <MomentRangeEditor
             key={selectedMoment.id}
             moment={selectedMoment}
@@ -164,9 +160,9 @@ export function AudioPlayer({
           />
         )}
 
-        {audio && !selectedMoment && moments.length > 0 && (
+        {!selectedMoment && moments.length > 0 && (
           <p className="text-center text-xs text-muted-foreground">
-            Selecione um momento (bandeira na linha do tempo ou “Ajustar trecho” na lista) para ajustar seu início e fim.
+            Selecione um momento (bandeira na linha do tempo ou tesoura na lista) para recortar seu início e fim.
           </p>
         )}
 

@@ -2,51 +2,60 @@
  * Tema Tokyo Night
  * Paleta original: https://github.com/folke/tokyonight.nvim
  *
- *  - Modo claro  → "Tokyo Night Day"
+ *  - Modo claro  → neutros Slate de alto contraste (substitui o "Tokyo Night Day")
  *  - Modo escuro → "Tokyo Night" (variante Night)
  *
  * Alguns tons de texto secundário foram levemente ajustados
  * para manter contraste mínimo de 4,5:1 (WCAG AA).
  */
 
-/* ---------- Tokyo Night Day (modo claro) ---------- */
+/* ---------- Modo claro: neutros Slate de alto contraste ---------- */
+/*
+ * O "Tokyo Night Day" original deixava quase todo texto azul e os cards
+ * sem separação. O modo claro usa neutros Slate (Tailwind):
+ *   texto primário #0f172a · secundário #475569 · muted #64748b
+ *   página #f1f5f9 · painéis #ffffff · bordas #e2e8f0 / #cbd5e1
+ * O verde-limão continua como preenchimento; linhas, textos e marcadores
+ * de destaque usam um verde-lima escuro (veja src/index.css).
+ */
 :root {
-  --background: #e1e2e7;
-  --foreground: #3760bf;
-  --card: #f4f4f7;
-  --card-foreground: #3760bf;
-  --popover: #f4f4f7;
-  --popover-foreground: #3760bf;
-  --primary: #2e7de9;
+  --background: #f1f5f9;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #1e293b;
   --primary-foreground: #ffffff;
-  --secondary: #e1e2e7;
-  --secondary-foreground: #3760bf;
-  --muted: #e1e2e7;
-  --muted-foreground: #525f96;
-  --accent: #d0d5e3;
-  --accent-foreground: #3760bf;
-  --destructive: #b03636;
-  --border: #c4c8da;
-  --input: #a8aecb;
-  --ring: #2e7de9;
-  --chart-1: #2e7de9;
-  --chart-2: #007197;
-  --chart-3: #9854f1;
-  --chart-4: #587539;
-  --chart-5: #b15c00;
-  --sidebar: #d0d5e3;
-  --sidebar-foreground: #3760bf;
-  --sidebar-primary: #2e7de9;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #1e293b;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #e2e8f0;
+  --accent-foreground: #0f172a;
+  --destructive: #dc2626;
+  --border: #e2e8f0;
+  --input: #cbd5e1;
+  --ring: #64748b;
+  --chart-1: #334155;
+  --chart-2: #0e7490;
+  --chart-3: #7c3aed;
+  --chart-4: #4d7c0f;
+  --chart-5: #c2410c;
+  --sidebar: #f8fafc;
+  --sidebar-foreground: #0f172a;
+  --sidebar-primary: #1e293b;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #c4c8da;
-  --sidebar-accent-foreground: #3760bf;
-  --sidebar-border: #c4c8da;
-  --sidebar-ring: #2e7de9;
+  --sidebar-accent: #e2e8f0;
+  --sidebar-accent-foreground: #0f172a;
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: #64748b;
 
   /* Específicos da aplicação */
-  --recording: #f52a65;
-  --waveform: #a8aecb;
-  --waveform-played: #2e7de9;
+  --recording: #e11d48;
+  /* Forma de onda: barras não reproduzidas (slate-400) e reproduzidas (slate-700). */
+  --waveform: #94a3b8;
+  --waveform-played: #334155;
 }
 
 /* ---------- Tokyo Night (modo escuro) ---------- */

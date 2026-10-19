@@ -6,6 +6,8 @@
 @import "./theme.css";
 
 @custom-variant dark (&:is(.dark *));
+/* Ajustes exclusivos do modo claro (o modo escuro não é afetado). */
+@custom-variant light (&:is(:root:not(.dark) *));
 
 @theme inline {
   --animate-mark-cooldown: mark-cooldown 2s linear forwards;
@@ -14,6 +16,9 @@
   --color-highlight: var(--highlight);
   --color-highlight-foreground: var(--highlight-foreground);
   --color-highlight-strong: var(--highlight-strong);
+  /* Destaque escuro do modo claro (linhas, marcadores, alças): usado só com `light:`. */
+  --color-accent-line: var(--accent-line);
+  --color-accent-outline: var(--accent-outline);
   --color-recording: var(--recording);
   --font-heading: var(--font-sans);
   --font-sans: 'Geist Variable', sans-serif;
@@ -61,13 +66,26 @@
   /* Tons derivados da cor principal (src/theme.css). */
   --highlight: var(--brand);
   --highlight-foreground: var(--brand-foreground);
-  /* Versão escurecida, legível como texto sobre fundo claro. */
-  --highlight-strong: color-mix(in oklch, var(--brand) 45%, black);
+  /* Texto de destaque sobre fundo claro (verde-lima escuro, contraste 7,8:1 no branco). */
+  --highlight-strong: #3f6212;
   --radius: 0.625rem;
 }
 
 .dark {
   --highlight-strong: var(--brand);
+}
+
+/*
+ * Modo claro: estratégia de destaque dupla.
+ *  - O verde-limão (--brand) continua como PREENCHIMENTO de botões, agora com
+ *    contorno (--accent-outline) e texto grafite.
+ *  - Linhas finas, marcadores da forma de onda, alças e bordas ativas usam um
+ *    verde-lima escuro (--accent-line), que não some sobre o branco.
+ */
+:root:not(.dark) {
+  --highlight-foreground: #0f172a;
+  --accent-line: #65a30d;
+  --accent-outline: #84cc16;
 }
 
 @layer base {
@@ -82,6 +100,19 @@
   html {
     @apply font-sans;
   }
+
+  /*
+   * O Tailwind v4 mudou o cursor padrão dos botões para `default` (no v3 era `pointer`).
+   * Restaura a "mãozinha" em tudo que é clicável; desabilitados mantêm o cursor normal.
+   * Utilitários como `cursor-text` e `cursor-ew-resize` continuam tendo prioridade.
+   */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [type="button"]:not(:disabled),
+  [type="submit"]:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
 }
 
 @keyframes mark-cooldown {
@@ -91,5 +122,28 @@
 
   to {
     transform: scaleX(0);
+  }
+}
+/* Barra de rolagem discreta para painéis com rolagem própria (lista de momentos). */
+@utility scrollbar-subtle {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklch, var(--muted-foreground) 35%, transparent) transparent;
+  scrollbar-gutter: stable;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: color-mix(in oklch, var(--muted-foreground) 35%, transparent);
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklch, var(--muted-foreground) 55%, transparent);
   }
 }

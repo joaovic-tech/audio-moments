@@ -95,8 +95,9 @@ export function PlaybackTimeline({
                 <button
                   type="button"
                   className={cn(
-                    "pointer-events-auto absolute top-0 h-3 w-2 -translate-x-1/2 rounded-sm bg-highlight ring-2 ring-card transition-transform hover:scale-125 focus-visible:scale-125 focus-visible:outline-none",
-                    moment.id === selectedId && "scale-125 ring-foreground/60",
+                    "pointer-events-auto absolute top-0 h-3 w-2 -translate-x-1/2 rounded-sm bg-highlight ring-2 ring-card transition-transform hover:scale-125 focus-visible:scale-125 focus-visible:outline-none light:bg-accent-line light:ring-white",
+                    moment.id === selectedId &&
+                      "scale-125 ring-foreground/60 light:ring-slate-900/70",
                   )}
                   style={{ left: percent(moment.timeSeconds, duration) }}
                   onClick={() => onSelectMoment(moment)}
@@ -122,7 +123,7 @@ export function PlaybackTimeline({
         aria-valuetext={`${formatTime(currentTime)} de ${formatTime(duration)}`}
         aria-disabled={inactive || undefined}
         className={cn(
-          "relative h-14 touch-none overflow-hidden rounded-lg bg-muted/50 outline-none select-none focus-visible:ring-3 focus-visible:ring-ring/50",
+          "relative h-14 touch-none overflow-hidden rounded-lg bg-muted/50 outline-none light:bg-slate-100 select-none focus-visible:ring-3 focus-visible:ring-ring/50",
           inactive ? "opacity-50" : "cursor-pointer",
         )}
         onPointerDown={handlePointerDown}
@@ -144,9 +145,9 @@ export function PlaybackTimeline({
               <div
                 key={moment.id}
                 className={cn(
-                  "pointer-events-none absolute inset-y-0 border-x border-highlight/50 bg-highlight/15",
+                  "pointer-events-none absolute inset-y-0 border-x border-highlight/50 bg-highlight/15 light:border-accent-line light:bg-accent-line/22",
                   moment.id === selectedId &&
-                    "border-x-2 border-highlight bg-highlight/30",
+                    "border-x-2 border-highlight bg-highlight/30 light:border-highlight-strong light:bg-accent-line/35",
                 )}
                 style={{
                   left: percent(moment.startSeconds, duration),

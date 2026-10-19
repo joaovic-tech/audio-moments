@@ -28,6 +28,9 @@ import { cn } from "@/lib/utils";
 import type { WaveformData } from "@/services/waveformService";
 import type { ImportantMoment } from "@/types/project";
 
+/** Id do editor, usado para levá-lo à área visível ao selecionar um momento. */
+export const MOMENT_RANGE_EDITOR_ID = "moment-range-editor";
+
 const FINE_STEP_SECONDS = 0.1;
 const COARSE_STEP_SECONDS = 1;
 
@@ -173,7 +176,7 @@ export function MomentRangeEditor({
   const momentName = moment.name || "momento sem nome";
 
   const handleClassName =
-    "absolute inset-y-0 z-10 flex w-3 cursor-ew-resize touch-none items-center justify-center bg-highlight outline-none select-none after:absolute after:-inset-x-3 after:inset-y-0 focus-visible:ring-3 focus-visible:ring-ring/60";
+    "absolute inset-y-0 z-10 flex w-3 cursor-ew-resize touch-none items-center justify-center bg-highlight outline-none select-none light:bg-accent-line light:ring-1 light:ring-highlight-strong after:absolute after:-inset-x-3 after:inset-y-0 focus-visible:ring-3 focus-visible:ring-ring/60";
 
   const renderHandle = (handle: Handle) => {
     const isStart = handle === "start";
@@ -190,7 +193,8 @@ export function MomentRangeEditor({
         className={cn(
           handleClassName,
           isStart ? "rounded-l-md" : "rounded-r-md -translate-x-full",
-          dragging === handle && "bg-highlight-strong",
+          dragging === handle &&
+            "bg-highlight-strong light:bg-highlight-strong",
         )}
         style={{ left: toPercent(time) }}
         onPointerDown={handlePointerDown(handle)}
@@ -200,8 +204,8 @@ export function MomentRangeEditor({
         onKeyDown={handleKeyDown(handle)}
       >
         <span className="flex gap-0.5" aria-hidden="true">
-          <span className="h-4 w-px rounded-full bg-highlight-foreground/60" />
-          <span className="h-4 w-px rounded-full bg-highlight-foreground/60" />
+          <span className="h-4 w-px rounded-full bg-highlight-foreground/60 light:bg-white/85" />
+          <span className="h-4 w-px rounded-full bg-highlight-foreground/60 light:bg-white/85" />
         </span>
       </div>
     );
@@ -209,7 +213,9 @@ export function MomentRangeEditor({
 
   return (
     <section
-      className="grid gap-3 rounded-xl border bg-muted/20 p-3"
+      id={MOMENT_RANGE_EDITOR_ID}
+      // Borda na cor de destaque e entrada suave: o editor "sai" do player, logo abaixo dos controles.
+      className="grid scroll-mt-24 gap-2.5 rounded-xl border border-highlight/35 bg-highlight/[0.04] p-3 shadow-sm light:border-accent-line/70 light:bg-lime-50/70 animate-in duration-200 fade-in slide-in-from-top-2"
       aria-label={`Ajustar trecho de ${momentName}`}
     >
       <div className="flex items-center gap-2">
@@ -230,7 +236,7 @@ export function MomentRangeEditor({
       <div className="flex flex-col gap-1">
         <div
           ref={trackRef}
-          className="relative h-20 cursor-pointer touch-none overflow-hidden rounded-lg bg-background select-none"
+          className="relative h-16 cursor-pointer touch-none overflow-hidden rounded-lg bg-background select-none light:bg-slate-100 light:ring-1 light:ring-slate-200"
           onPointerDown={handleTrackPointerDown}
         >
           <Waveform
@@ -250,7 +256,7 @@ export function MomentRangeEditor({
             style={{ left: toPercent(endSeconds) }}
           />
           <div
-            className="pointer-events-none absolute inset-y-0 border-y-2 border-highlight bg-highlight/10"
+            className="pointer-events-none absolute inset-y-0 border-y-2 border-highlight bg-highlight/10 light:border-accent-line light:bg-accent-line/15"
             style={{
               left: toPercent(startSeconds),
               right: `calc(100% - ${toPercent(endSeconds)})`,
@@ -280,7 +286,10 @@ export function MomentRangeEditor({
           ["Fim", formatTimePrecise(endSeconds)],
           ["Duração", formatDurationLabel(rangeLength(moment))],
         ].map(([label, value]) => (
-          <div key={label} className="rounded-lg bg-background px-2 py-1.5">
+          <div
+            key={label}
+            className="rounded-lg bg-background px-2 py-1.5 light:bg-white light:ring-1 light:ring-slate-200"
+          >
             <dt className="text-[11px] text-muted-foreground">{label}</dt>
             <dd className="font-mono text-xs font-medium tabular-nums sm:text-sm">
               {value}

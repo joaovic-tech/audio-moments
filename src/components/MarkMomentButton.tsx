@@ -32,6 +32,9 @@ export function MarkMomentButton({
       className={cn(
         "relative overflow-hidden rounded-xl bg-highlight text-base font-semibold text-highlight-foreground shadow-sm hover:bg-highlight/90",
         locked && "disabled:opacity-80",
+        // No modo claro, o estado "Momento marcado" continua verde (não usa o cinza de desabilitado).
+        locked &&
+          "light:disabled:border-accent-outline light:disabled:bg-highlight light:disabled:text-highlight-foreground light:disabled:opacity-90",
         className,
       )}
       disabled={disabled || locked}

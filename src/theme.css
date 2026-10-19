@@ -4,7 +4,7 @@
  * ============================================================
  *  1. PALETA: fundos, textos, bordas, forma de onda etc.
  *     Troque o arquivo importado abaixo para mudar o tema todo:
- *       ./themes/tokyo-night.css  → Tokyo Night (Night no escuro, Day no claro)
+ *       ./themes/tokyo-night.css  → Tokyo Night no escuro, neutros Slate no claro
  *       ./themes/neutral.css      → tons neutros (tema original)
  */
 @import "./themes/tokyo-night.css";

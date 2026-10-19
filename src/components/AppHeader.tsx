@@ -11,11 +11,12 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ actions, theme, onToggleTheme }: AppHeaderProps) {
+  // Fundo quase opaco: textos grandes (como o cronômetro) não "vazam" borrados ao rolar.
   return (
-    <header className="sticky top-0 z-30 border-b bg-background/85 backdrop-blur supports-backdrop-filter:bg-background/70">
+    <header className="sticky top-0 z-30 border-b bg-background/90 shadow-xs backdrop-blur-md supports-backdrop-filter:bg-background/90 light:bg-white/95 light:shadow-[0_1px_3px_rgba(15,23,42,0.06)]">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
         <div className="flex items-center gap-2.5">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-highlight text-highlight-foreground">
+          <div className="flex size-9 items-center justify-center rounded-lg bg-highlight text-highlight-foreground light:ring-1 light:ring-accent-outline">
             <AudioLines className="size-5" />
           </div>
           <div className="leading-tight">
@@ -29,9 +30,7 @@ export function AppHeader({ actions, theme, onToggleTheme }: AppHeaderProps) {
                 v{__APP_VERSION__}
               </Badge>
             </p>
-            <p className="hidden text-xs text-muted-foreground sm:block">
-              Grave conversas e marque o que importa
-            </p>
+            <p className="hidden text-xs text-muted-foreground sm:block">Grave conversas e marque o que importa</p>
           </div>
         </div>
 

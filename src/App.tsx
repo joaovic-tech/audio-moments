@@ -11,6 +11,8 @@ import { ImportExportControls } from "@/components/ImportExportControls";
 import { ImportProjectDialog } from "@/components/ImportProjectDialog";
 import { ImportantMomentList } from "@/components/ImportantMomentList";
 import { MarkMomentButton } from "@/components/MarkMomentButton";
+import { MOMENT_RANGE_EDITOR_ID } from "@/components/MomentRangeEditor";
+import { ProjectSummaryCard } from "@/components/ProjectSummaryCard";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { useBeforeUnload } from "@/hooks/useBeforeUnload";
@@ -18,7 +20,9 @@ import { useIsVisible } from "@/hooks/useIsVisible";
 import { useObjectUrl } from "@/hooks/useObjectUrl";
 import { useWaveform } from "@/hooks/useWaveform";
 import { useProject } from "@/hooks/useProject";
+import { useProjectPersistence } from "@/hooks/useProjectPersistence";
 import { useTheme } from "@/hooks/useTheme";
+import { resolveProjectName } from "@/lib/fileName";
 import { findMomentAt } from "@/lib/momentRange";
 import { formatTime, formatTimePrecise } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -35,7 +39,11 @@ import {
   findIncompleteMoments,
   getExportFileNames,
 } from "@/services/projectExportService";
-import type { ImportPreview } from "@/services/projectImportService";
+import {
+  ImportError,
+  prepareImport,
+  type ImportPreview,
+} from "@/services/projectImportService";
 import type { ImportantMoment, RecordingResult } from "@/types/project";
 
 /** Tempo em que o botão de marcação fica bloqueado após cada clique. */
@@ -61,6 +69,7 @@ export default function App() {
     clearContent,
     setRecordedAudio,
     loadImported,
+    restore,
     addMoment,
     updateMoment,
     updateMomentRange,
@@ -73,6 +82,7 @@ export default function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isImportingAudio, setIsImportingAudio] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmOptions | null>(null);
   const [editingIds, setEditingIds] = useState<ReadonlySet<string>>(new Set());
   const [focusId, setFocusId] = useState<string | null>(null);
@@ -80,7 +90,29 @@ export default function App() {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [isMarkLocked, setIsMarkLocked] = useState(false);
   const markLockTimerRef = useRef<number | null>(null);
-  const playerCardRef = useRef<HTMLDivElement>(null);
+
+  /* ---------- Salvamento automático (IndexedDB) ---------- */
+
+  const persistence = useProjectPersistence({
+    project,
+    onRestore: (stored) => {
+      restore(
+        stored.audio,
+        stored.name,
+        stored.moments,
+        stored.hasUnsavedChanges,
+      );
+      toast.success("Projeto restaurado", {
+        description: `${resolveProjectName(stored.name)} · ${pluralize(stored.moments.length, "marcação", "marcações")}. Salvo automaticamente neste navegador.`,
+      });
+    },
+    onError: (error) => {
+      toast.error("Salvamento automático indisponível", {
+        description: `${error.message} Exporte o .zip para não perder o trabalho.`,
+        duration: 10_000,
+      });
+    },
+  });
 
   const handleRecordingComplete = useCallback(
     async ({ blob, mimeType, elapsedSeconds }: RecordingResult) => {
@@ -132,7 +164,16 @@ export default function App() {
     recorder.isActive || recorder.status === "requesting" || isProcessing;
   const canMark = recorder.isActive || (audio !== null && !isProcessing);
 
-  useBeforeUnload(recorder.isActive || project.hasUnsavedChanges);
+  // O projeto é salvo automaticamente; o aviso ao fechar fica para o que ainda não foi salvo:
+  // uma gravação em andamento (ou sendo processada) ou um navegador sem salvamento automático.
+  const cannotPersist =
+    persistence.status === "unavailable" || persistence.status === "error";
+  useBeforeUnload(
+    recorder.isActive ||
+      recorder.status === "requesting" ||
+      isProcessing ||
+      (cannotPersist && project.hasUnsavedChanges),
+  );
 
   /* ---------- Gravação ---------- */
 
@@ -180,12 +221,14 @@ export default function App() {
         player.pause();
         recorder.reset();
         clearContent();
+        // Remove também o projeto salvo neste navegador.
+        persistence.clear();
         setEditingIds(new Set());
         setSelectedMomentId(null);
         toast("Projeto descartado");
       },
     });
-  }, [clearContent, moments.length, player, recorder]);
+  }, [clearContent, moments.length, persistence, player, recorder]);
 
   /* ---------- Marcações ---------- */
 
@@ -295,14 +338,16 @@ export default function App() {
 
   const handleAdjustMoment = useCallback((moment: ImportantMoment) => {
     setSelectedMomentId(moment.id);
-    // Em telas pequenas o player fica acima da lista: leva o usuário até o editor.
-    const card = playerCardRef.current;
-    if (card) {
-      const rect = card.getBoundingClientRect();
-      if (rect.bottom < 0 || rect.top > window.innerHeight * 0.6) {
-        card.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Em telas pequenas o player fica acima da lista: leva o usuário até o editor
+    // (no desktop ele já está visível na coluna fixa e nada rola).
+    requestAnimationFrame(() => {
+      const editor = document.getElementById(MOMENT_RANGE_EDITOR_ID);
+      if (!editor) return;
+      const rect = editor.getBoundingClientRect();
+      if (rect.top < 64 || rect.bottom > window.innerHeight) {
+        editor.scrollIntoView({ behavior: "smooth", block: "center" });
       }
-    }
+    });
   }, []);
 
   const handleChangeRange = useCallback(
@@ -396,6 +441,34 @@ export default function App() {
     [applyImport, hasContent, project.hasUnsavedChanges],
   );
 
+  /** Abre um áudio (ou .zip) escolhido na área de importação do estado vazio. */
+  const importAudioFile = useCallback(
+    async (file: File) => {
+      setIsImportingAudio(true);
+      try {
+        const preview = await prepareImport({ highlightFile: file });
+        preview.warnings.forEach((warning) => toast.warning(warning));
+        if (preview.jsonErrors) {
+          toast.warning("Marcações não carregadas", {
+            description:
+              "O JSON do .zip é inválido. O áudio foi aberto sem marcações.",
+          });
+        }
+        handleImport(preview);
+      } catch (error) {
+        toast.error("Não foi possível abrir o arquivo", {
+          description:
+            error instanceof ImportError
+              ? error.message
+              : "Não foi possível ler o arquivo selecionado.",
+        });
+      } finally {
+        setIsImportingAudio(false);
+      }
+    },
+    [handleImport],
+  );
+
   const handleExport = useCallback(async () => {
     const incomplete = findIncompleteMoments(moments);
     if (incomplete.length > 0) {
@@ -447,6 +520,8 @@ export default function App() {
         ? audioFileName
         : `${zipFileName} ou áudio`;
   const canExport = audio !== null && !isRecorderBusy;
+  /** "Modo análise": há um áudio pronto para ouvir, marcar e recortar. */
+  const isAnalysisMode = audio !== null;
   const exportHint = !audio
     ? "Grave ou importe um áudio para exportar."
     : isRecorderBusy
@@ -465,8 +540,8 @@ export default function App() {
 
   /* ---------- Atalho de teclado e barra fixa no celular ---------- */
 
-  const markButtonRef = useRef<HTMLButtonElement>(null);
-  const isMarkButtonVisible = useIsVisible(markButtonRef);
+  const [markButtonRef, isMarkButtonVisible] =
+    useIsVisible<HTMLButtonElement>();
   const isModalOpen = confirm !== null || isImportOpen;
 
   useEffect(() => {
@@ -509,46 +584,82 @@ export default function App() {
           }
         />
 
-        <main className="mx-auto grid w-full max-w-6xl flex-1 content-start gap-6 px-4 py-6 sm:px-6 lg:grid-cols-2">
-          <div className="grid gap-6">
-            <AudioRecorder
-              recorder={recorder}
-              projectName={project.name}
-              onProjectNameChange={setName}
-              exportFileName={exportFileName}
-              audioSource={audio?.source ?? null}
-              audioDuration={
-                audio ? playbackDuration || audio.durationSeconds : null
-              }
-              hasContent={hasContent}
-              isProcessing={isProcessing}
-              canMark={canMark}
-              isMarkLocked={isMarkLocked}
-              markHint={markHint}
-              onStart={startRecording}
-              onStop={recorder.stop}
-              onDiscard={discardRecording}
-              onMark={markMoment}
-              markButtonRef={markButtonRef}
-            />
-            <AudioPlayer
-              player={player}
-              audio={audio}
-              moments={moments}
-              waveform={waveform}
-              isRecording={recorder.isActive}
-              selectedMoment={selectedMoment}
-              downloadingId={downloadingId}
-              onSelectMoment={(moment) => setSelectedMomentId(moment.id)}
-              onCloseEditor={() => setSelectedMomentId(null)}
-              onChangeRange={handleChangeRange}
-              onToggleRange={handleToggleRange}
-              onDownloadMoment={(moment) => void handleDownloadMoment(moment)}
-              cardRef={playerCardRef}
-            />
+        {/*
+          Desktop: duas colunas fixas (sticky) abaixo do cabeçalho. A da esquerda concentra
+          gravação/reprodução/editor; a da direita tem altura da viewport e rolagem própria.
+          Celular: as colunas são empilhadas e a página rola normalmente.
+        */}
+        <main className="mx-auto grid w-full max-w-6xl flex-1 content-start gap-4 px-4 py-5 sm:gap-6 sm:px-6 lg:grid-cols-12 lg:items-start lg:py-6">
+          <div className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-20 lg:col-span-7">
+            {isAnalysisMode ? (
+              <>
+                <ProjectSummaryCard
+                  projectName={project.name}
+                  onProjectNameChange={setName}
+                  exportFileName={exportFileName}
+                  audioSource={audio.source}
+                  durationSeconds={playbackDuration || audio.durationSeconds}
+                  persistenceStatus={persistence.status}
+                  onNewRecording={startRecording}
+                  onDiscard={discardRecording}
+                />
+                <AudioPlayer
+                  player={player}
+                  audio={audio}
+                  moments={moments}
+                  waveform={waveform}
+                  selectedMoment={selectedMoment}
+                  downloadingId={downloadingId}
+                  onSelectMoment={(moment) => setSelectedMomentId(moment.id)}
+                  onCloseEditor={() => setSelectedMomentId(null)}
+                  onChangeRange={handleChangeRange}
+                  onToggleRange={handleToggleRange}
+                  onDownloadMoment={(moment) =>
+                    void handleDownloadMoment(moment)
+                  }
+                  markAction={
+                    <div className="grid gap-1.5">
+                      <MarkMomentButton
+                        buttonRef={markButtonRef}
+                        className="h-12 w-full"
+                        disabled={!canMark}
+                        locked={isMarkLocked}
+                        onClick={markMoment}
+                        showShortcut
+                      >
+                        Marcar momento importante
+                      </MarkMomentButton>
+                      <p className="text-center text-xs text-muted-foreground tabular-nums">
+                        {markHint}
+                      </p>
+                    </div>
+                  }
+                />
+              </>
+            ) : (
+              <AudioRecorder
+                recorder={recorder}
+                projectName={project.name}
+                onProjectNameChange={setName}
+                exportFileName={exportFileName}
+                hasContent={hasContent}
+                isProcessing={isProcessing}
+                isImportingAudio={isImportingAudio}
+                canMark={canMark}
+                isMarkLocked={isMarkLocked}
+                markHint={markHint}
+                onStart={startRecording}
+                onStop={recorder.stop}
+                onDiscard={discardRecording}
+                onMark={markMoment}
+                onImportAudio={(file) => void importAudioFile(file)}
+                markButtonRef={markButtonRef}
+              />
+            )}
           </div>
 
           <ImportantMomentList
+            className="lg:sticky lg:top-20 lg:col-span-5 lg:max-h-[calc(100dvh-7rem)]"
             moments={moments}
             editingIds={editingIds}
             focusId={focusId}
@@ -567,12 +678,12 @@ export default function App() {
           />
         </main>
 
-        <footer className="border-t flex w-full gap-2 justify-center items-center py-4 text-xs text-muted-foreground sm:px-6">
+        <footer className="flex w-full items-center justify-center gap-2 border-t px-4 py-4 text-xs text-muted-foreground sm:px-6">
           <ShieldCheck className="size-4 shrink-0" />
-          <p>
-            Tudo é processado localmente: nenhum áudio ou arquivo é enviado para
-            servidores. O projeto fica apenas na memória desta aba e é perdido
-            ao fechar ou recarregar a página — exporte para guardá-lo.
+          <p className="max-w-3xl">
+            Tudo é processado localmente: nenhum áudio é enviado para
+            servidores. Seu projeto atual fica salvo automaticamente neste
+            navegador — exporte o .zip para fazer backup ou transferir.
           </p>
         </footer>
 
