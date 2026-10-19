@@ -16,6 +16,12 @@ A versão tem o formato `MAJOR.MINOR.PATCH` e fica no campo `version` do [`packa
 
 ## [Não lançado]
 
+### Adicionado
+
+- Uso sem internet (PWA, com `vite-plugin-pwa`): depois do primeiro acesso, o service worker guarda todos os arquivos do build no navegador (incluindo o JSZip carregado sob demanda e as fontes), e o app abre e funciona offline — gravar, marcar, ouvir e baixar trechos, exportar e importar. Um aviso "Pronto para usar sem internet" aparece quando o app termina de ser guardado.
+- Aviso "Nova versão disponível" com o botão "Atualizar". A versão nova só é ativada com o clique, e nunca durante uma gravação: nesse caso o app pede para finalizar antes. O projeto salvo no navegador é restaurado depois de atualizar. Abas abertas por muito tempo procuram atualizações a cada hora.
+- Instalação como app: manifest com nome, cores e ícones (192 px, 512 px, maskable e `apple-touch-icon`). No Chrome, Edge e Android aparece o botão "Instalar" no cabeçalho; no iPhone, use "Compartilhar → Adicionar à Tela de Início".
+
 ### Alterado
 
 - "Marcar momento importante" (e a tecla M) só registra o instante: não abre mais o formulário nem coloca o foco no campo de nome. No celular, o foco abria o teclado e rolava a tela, atrapalhando quem está entrevistando. Nome e observação são preenchidos depois, direto na lista; momentos ainda sem nome aparecem com o selo discreto "Nome pendente".

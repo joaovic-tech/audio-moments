@@ -18,6 +18,7 @@ Plataforma web responsiva para **gravar conversas pelo microfone, marcar momento
 - **Nome do projeto**, usado na interface e nos arquivos (convertido para um nome de arquivo seguro). O padrão é `gravacao-AAAA-MM-DD`.
 - Tema claro/escuro com botão de alternância no canto superior direito (a escolha fica salva no navegador; sem escolha, segue o sistema). A versão da plataforma aparece ao lado do nome.
 - **Salvamento automático no navegador (IndexedDB)**: o áudio bruto (Blob, sem Base64) e o JSON do projeto (nome e marcações) são salvos automaticamente e restaurados ao reabrir a página. Edições de texto e o arraste das alças são salvos com debounce de 300 ms. **Descartar** apaga também o projeto salvo.
+- **Funciona sem internet (PWA)**: depois do primeiro acesso, o app fica guardado no navegador e abre mesmo offline. Pode ser **instalado** como aplicativo (botão “Instalar” no Chrome/Edge/Android, ou “Adicionar à Tela de Início” no iPhone). Versões novas aparecem como “Nova versão disponível”, e só são ativadas com o clique em “Atualizar” (nunca durante uma gravação). Veja [Uso offline (PWA)](#uso-offline-pwa).
 - Layout para celular (com barra fixa de marcação durante a gravação) e aviso antes de fechar a página durante uma gravação em andamento (ou, se o navegador não permitir o salvamento automático, com alterações não exportadas).
 
 ## Requisitos
@@ -47,6 +48,17 @@ Acesse <http://localhost:5173>.
 | `npm run check`     | typecheck + lint + testes + build                |
 
 Para testar em um celular na mesma rede, use `npm run dev -- --host`. Fora de `localhost`, porém, o navegador só libera o microfone via HTTPS (por exemplo, com um proxy/túnel HTTPS ou com `@vitejs/plugin-basic-ssl`).
+
+## Uso offline (PWA)
+
+A aplicação é um Progressive Web App, configurado com [`vite-plugin-pwa`](https://vite-pwa-org.netlify.app/) em [`vite.config.ts`](vite.config.ts):
+
+- **Service worker** (`dist/sw.js`, gerado no build): guarda todos os arquivos do build (HTML, JS, CSS, fontes, ícones e o pedaço do JSZip carregado sob demanda) no primeiro acesso. A partir daí, o app abre e funciona sem conexão. Qualquer rota cai no `index.html`.
+- **Atualizações** (`registerType: 'prompt'`): quando uma versão nova é publicada, ela fica esperando e o app mostra “Nova versão disponível”. Ao clicar em “Atualizar”, a versão nova assume e a página recarrega; o projeto salvo no IndexedDB é restaurado. Durante uma gravação o botão não recarrega (o app pede para finalizar antes). Abas abertas por muito tempo verificam atualizações a cada hora.
+- **Instalação**: o manifest (`manifest.webmanifest`, gerado no build) define nome, cores e ícones. Os ícones ficam em `public/` (`pwa-192x192.png`, `pwa-512x512.png`, `pwa-maskable-512x512.png` e `apple-touch-icon.png`, gerados a partir do `favicon.svg`). Se mudar o ícone, gere esses PNGs de novo.
+- O registro e o botão “Instalar” ficam em [`src/hooks/usePwa.ts`](src/hooks/usePwa.ts). O botão só aparece quando o navegador permite instalar (evento `beforeinstallprompt`, no Chrome, Edge e Android).
+- Em `npm run dev` o service worker **não** é ativado, para não atrapalhar o desenvolvimento. Para testar o modo offline, use `npm run build && npm run preview`, abra <http://localhost:4173>, e no DevTools → Application → Service Workers marque “Offline” e recarregue a página.
+- Na Vercel não é preciso configurar nada: o `sw.js` é servido sem cache longo, então as versões novas são detectadas no próximo acesso com internet.
 
 ## Versão
 
@@ -158,6 +170,7 @@ src/
 │   ├── useAudioPlayer.ts        # Controle do <audio>, correção da duração de WebM
 │   ├── useProject.ts            # Reducer do projeto (nome, áudio, marcações)
 │   ├── useProjectPersistence.ts # Salvamento automático/restauração no IndexedDB
+│   ├── usePwa.ts                # Service worker (offline), aviso de nova versão e "Instalar app"
 │   ├── useObjectUrl.ts          # createObjectURL/revokeObjectURL com ciclo de vida
 │   ├── useWaveform.ts           # Forma de onda calculada localmente
 │   └── ...
@@ -174,7 +187,7 @@ src/
 └── themes/                      # Paletas: tokyo-night.css, neutral.css
 ```
 
-Stack: React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui (Radix), Lucide React, JSZip (carregado sob demanda) e Vitest.
+Stack: React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui (Radix), Lucide React, JSZip (carregado sob demanda), vite-plugin-pwa (Workbox) e Vitest.
 
 ## Testes e verificações
 
@@ -186,6 +199,7 @@ Stack: React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui (Radix), Lucide Re
 
 - O microfone só é acessado depois de um clique em “Iniciar gravação” e da permissão do navegador. Ele é liberado ao finalizar ou descartar.
 - Nenhum dado sai do navegador. Não há transcrição, reconhecimento de fala nem serviços de terceiros.
+- O service worker guarda apenas os arquivos da própria aplicação (código, estilos, fontes e ícones), nunca áudios ou marcações.
 - **Salvamento automático local**: o projeto atual (áudio e marcações) fica salvo no IndexedDB deste navegador e é restaurado ao reabrir a página. Ele não sai do dispositivo e some ao limpar os dados do site, em janelas anônimas ou se o navegador liberar espaço. Exporte o .zip para fazer backup ou transferir o projeto.
 - Apenas **um projeto** é guardado por navegador; abas abertas ao mesmo tempo salvam no mesmo registro (vale a última alteração).
 - Uma gravação **em andamento** ainda não é salva (o áudio só existe ao finalizar); por isso a página avisa antes de fechar durante a gravação.
@@ -201,4 +215,5 @@ Stack: React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui (Radix), Lucide Re
 - A precisão das marcações durante a gravação é a do cronômetro do navegador (diferenças de poucos centésimos de segundo em relação ao arquivo final). Marcações que ficariam além do fim real são ajustadas para o último instante.
 - O ZIP é montado em memória. Áudios muito longos (centenas de MB) podem esgotar a memória em celulares; avisamos a partir de 300 MB, e o limite de importação é 2 GB.
 - A gravação em segundo plano (aba oculta ou tela bloqueada) depende do sistema operacional. A aplicação pede para manter a tela ligada (Wake Lock) enquanto grava, quando o navegador permite.
+- **Uso offline** exige um primeiro acesso com internet (para guardar o app no navegador). No iPhone/iPad, o Safari pode apagar os dados de sites que não são abertos há algumas semanas, incluindo o app guardado e o projeto salvo: instalar na Tela de Início reduz esse risco, mas exporte o .zip para backup.
 - Formatos que o navegador não decodifica (por exemplo, FLAC em alguns Safari) são recusados na importação com uma mensagem explicando o motivo.

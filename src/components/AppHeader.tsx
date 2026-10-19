@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
-import { AudioLines } from "lucide-react";
+import { AudioLines, MonitorSmartphone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import type { Theme } from "@/lib/theme";
 
@@ -8,9 +10,12 @@ interface AppHeaderProps {
   actions: ReactNode;
   theme: Theme;
   onToggleTheme: () => void;
+  /** Mostra o botão "Instalar" quando o navegador permite instalar o app (Chrome, Edge, Android). */
+  canInstall?: boolean;
+  onInstall?: () => void;
 }
 
-export function AppHeader({ actions, theme, onToggleTheme }: AppHeaderProps) {
+export function AppHeader({ actions, theme, onToggleTheme, canInstall = false, onInstall }: AppHeaderProps) {
   // Fundo quase opaco: textos grandes (como o cronômetro) não "vazam" borrados ao rolar.
   return (
     <header className="sticky top-0 z-30 border-b bg-background/90 shadow-xs backdrop-blur-md supports-backdrop-filter:bg-background/90 light:bg-white/95 light:shadow-[0_1px_3px_rgba(15,23,42,0.06)]">
@@ -36,7 +41,22 @@ export function AppHeader({ actions, theme, onToggleTheme }: AppHeaderProps) {
 
         {/* Celular: o seletor de tema fica na primeira linha e as ações descem para a segunda. */}
         <div className="order-3 w-full sm:order-2 sm:ml-auto sm:w-auto">{actions}</div>
-        <ThemeToggle theme={theme} onToggle={onToggleTheme} className="order-2 ml-auto sm:order-3 sm:ml-0" />
+        <div className="order-2 ml-auto flex items-center gap-2 sm:order-3 sm:ml-0">
+          {canInstall && onInstall && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="lg" className="rounded-full" onClick={onInstall}>
+                  <MonitorSmartphone />
+                  Instalar
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-64">
+                Instala o Audio Moments como um app, com ícone próprio. Funciona mesmo sem internet.
+              </TooltipContent>
+            </Tooltip>
+          )}
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        </div>
       </div>
     </header>
   );

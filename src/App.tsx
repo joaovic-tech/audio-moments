@@ -21,6 +21,7 @@ import { useObjectUrl } from "@/hooks/useObjectUrl";
 import { useWaveform } from "@/hooks/useWaveform";
 import { useProject } from "@/hooks/useProject";
 import { useProjectPersistence } from "@/hooks/useProjectPersistence";
+import { usePwa } from "@/hooks/usePwa";
 import { useTheme } from "@/hooks/useTheme";
 import { resolveProjectName } from "@/lib/fileName";
 import { findMomentAt } from "@/lib/momentRange";
@@ -162,6 +163,49 @@ export default function App() {
 
   const isRecorderBusy =
     recorder.isActive || recorder.status === "requesting" || isProcessing;
+
+  /* ---------- Modo offline (PWA) ---------- */
+
+  const pwa = usePwa();
+  const { offlineReady, dismissOfflineReady, needRefresh, dismissUpdate, update } = pwa;
+  // A atualização recarrega a página: nunca no meio de uma gravação.
+  const isRecorderBusyRef = useRef(isRecorderBusy);
+  useEffect(() => {
+    isRecorderBusyRef.current = isRecorderBusy;
+  }, [isRecorderBusy]);
+
+  useEffect(() => {
+    if (!offlineReady) return;
+    toast.success("Pronto para usar sem internet", {
+      description:
+        "O app foi guardado neste navegador e abre mesmo offline.",
+    });
+    dismissOfflineReady();
+  }, [offlineReady, dismissOfflineReady]);
+
+  useEffect(() => {
+    if (!needRefresh) return;
+    const toastId = toast("Nova versão disponível", {
+      description:
+        "Atualize para usar as novidades. Seu projeto salvo continua aqui.",
+      duration: Infinity,
+      action: {
+        label: "Atualizar",
+        onClick: (event) => {
+          if (isRecorderBusyRef.current) {
+            event.preventDefault(); // mantém o aviso aberto
+            toast.warning("Finalize a gravação antes de atualizar.");
+            return;
+          }
+          void update();
+        },
+      },
+      onDismiss: dismissUpdate,
+    });
+    return () => {
+      toast.dismiss(toastId);
+    };
+  }, [needRefresh, dismissUpdate, update]);
   const canMark = recorder.isActive || (audio !== null && !isProcessing);
 
   // O projeto é salvo automaticamente; o aviso ao fechar fica para o que ainda não foi salvo:
@@ -573,6 +617,8 @@ export default function App() {
         <AppHeader
           theme={theme}
           onToggleTheme={toggleTheme}
+          canInstall={pwa.canInstall}
+          onInstall={() => void pwa.install()}
           actions={
             <ImportExportControls
               canImport={!isRecorderBusy}
@@ -683,7 +729,8 @@ export default function App() {
           <ShieldCheck className="size-4 shrink-0" />
           <p className="max-w-3xl">
             Tudo é processado localmente: nenhum áudio é enviado para
-            servidores. Seu projeto atual fica salvo automaticamente neste
+            servidores, e depois do primeiro acesso o app funciona mesmo sem
+            internet. Seu projeto atual fica salvo automaticamente neste
             navegador — exporte o .zip para fazer backup ou transferir.
           </p>
         </footer>
