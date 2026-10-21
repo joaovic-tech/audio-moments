@@ -1,36 +1,149 @@
-# Audio Moments
+<div align="center">
 
-Plataforma web responsiva para **gravar conversas pelo microfone, marcar momentos importantes** durante a gravação ou a reprodução e **exportar/importar** o projeto (áudio + marcações). Todo o processamento acontece localmente no navegador: nenhum áudio é enviado a servidores.
+<a href="https://audio-moments.vercel.app">
+  <img src="template/template.webp" alt="Audio Moments: grave conversas e marque os momentos importantes" width="100%" />
+</a>
+
+<h1>Audio Moments</h1>
+
+<p><strong>Grave conversas e marque os momentos importantes.</strong><br />
+Gravação, marcação, recorte e exportação de áudio, direto no navegador.</p>
+
+<p>
+  <img src="https://img.shields.io/badge/status-est%C3%A1vel-d9fe16?style=flat-square&labelColor=1a1b26" alt="Status: estável" />
+  <img src="https://img.shields.io/badge/vers%C3%A3o-1.0.0-7aa2f7?style=flat-square&labelColor=1a1b26" alt="Versão 1.0.0" />
+  <img src="https://img.shields.io/badge/PWA-offline-bb9af7?style=flat-square&labelColor=1a1b26" alt="PWA com uso offline" />
+  <img src="https://img.shields.io/badge/IA-em%20breve-ff9e64?style=flat-square&labelColor=1a1b26" alt="Integração com IA em breve" />
+</p>
+
+<p>
+  <img src="https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react&logoColor=white&labelColor=1a1b26" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-3178c6?style=flat-square&logo=typescript&logoColor=white&labelColor=1a1b26" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Vite-646cff?style=flat-square&logo=vite&logoColor=white&labelColor=1a1b26" alt="Vite" />
+  <img src="https://img.shields.io/badge/Tailwind%20CSS-v4-38bdf8?style=flat-square&logo=tailwindcss&logoColor=white&labelColor=1a1b26" alt="Tailwind CSS v4" />
+  <img src="https://img.shields.io/badge/shadcn%2Fui-ffffff?style=flat-square&logo=shadcnui&logoColor=white&labelColor=1a1b26" alt="shadcn/ui" />
+  <img src="https://img.shields.io/badge/testes-57%20passando-9ece6a?style=flat-square&logo=vitest&logoColor=white&labelColor=1a1b26" alt="57 testes passando" />
+</p>
+
+<p>
+  <a href="https://audio-moments.vercel.app"><strong>Acessar o app</strong></a>
+  ·
+  <a href="#funcionalidades">Funcionalidades</a>
+  ·
+  <a href="#roadmap">Roadmap</a>
+  ·
+  <a href="#começando">Começando</a>
+</p>
+
+</div>
+
+> [!IMPORTANT]
+> **Versão estável `1.0.0`.** Gravação, marcação, trechos, exportação/importação e uso offline estão completos. O formato dos arquivos (JSON versão 2 dentro do `.zip`) é estável: os projetos exportados agora continuarão abrindo nas próximas versões `1.x`. O próximo grande passo é a **integração com inteligência artificial**, que chegará em novas versões sem quebrar os arquivos existentes (veja o [Roadmap](#roadmap)).
+
+## Sumário
+
+- [Sobre o projeto](#sobre-o-projeto)
+- [Funcionalidades](#funcionalidades)
+- [Roadmap](#roadmap)
+- [Começando](#começando)
+- [Uso offline (PWA)](#uso-offline-pwa)
+- [Tema e cor principal](#tema-e-cor-principal)
+- [Formato do arquivo JSON (versão 2)](#formato-do-arquivo-json-versão-2)
+- [Arquitetura](#arquitetura)
+- [Testes e verificações](#testes-e-verificações)
+- [Privacidade e armazenamento](#privacidade-e-armazenamento)
+- [Limitações conhecidas](#limitações-conhecidas)
+- [Versão e changelog](#versão-e-changelog)
+
+## Sobre o projeto
+
+Em reuniões, entrevistas e aulas, a parte que importa costuma durar poucos segundos, e encontrá-la depois numa gravação longa toma tempo. O **Audio Moments** resolve isso: enquanto você grava (ou ouve um áudio), basta um clique ou a tecla <kbd>M</kbd> para marcar o instante. Depois, cada momento vira um trecho com nome e observação, que pode ser ouvido, ajustado na forma de onda e baixado separadamente.
+
+Tudo roda **localmente no navegador**: nenhum áudio é enviado a servidores, o projeto é salvo automaticamente no próprio dispositivo e o app funciona **sem internet** depois do primeiro acesso.
+
+**Destaques**
+
+- 🎙️ Gravação pelo microfone com pausa, retomada e medidor de nível, ou importação de áudios prontos.
+- 🔖 Marcação instantânea de momentos (botão ou tecla <kbd>M</kbd>), sem interromper a conversa.
+- ✂️ Trechos ajustáveis na forma de onda, com opção de ouvir e baixar só aquele pedaço.
+- 🔎 Lista de momentos com busca, edição rápida e ordem cronológica.
+- 📦 Exportação e importação do projeto completo em `.zip` (áudio + `momentos-importantes.json`).
+- 📴 PWA instalável, com uso offline, salvamento automático e tema claro/escuro.
 
 ## Funcionalidades
 
+### Gravação e marcação
+
 - **Gravação** com `getUserMedia` + `MediaRecorder`: iniciar, pausar/retomar, finalizar e descartar (com confirmação). Cronômetro, indicador de estado e medidor de nível do microfone.
 - **Marcação de momentos** com o botão **“Marcar momento importante”** (ou a tecla <kbd>M</kbd>). O tempo registrado é a posição real no áudio: o cronômetro desconta as pausas. Depois da gravação, ou em um áudio importado, a marcação usa a posição atual da reprodução. Após cada clique o botão fica **bloqueado por 2 segundos**, para evitar marcações duplicadas. A marcação só registra o instante, sem abrir formulário nem mover a tela (o teclado do celular não sobe); nome e observação são preenchidos depois, na lista.
+
+### Trechos e reprodução
+
 - **Trecho de cada momento**: toda marcação recebe um trecho padrão de **2 s antes até 2 s depois** do instante marcado. No player, um editor no estilo dos editores de áudio mostra a forma de onda ampliada, com **alças arrastáveis de início e fim**. As alças também respondem às setas do teclado (0,1 s, ou 1 s com Shift), e os botões “Início aqui”/“Fim aqui” usam a posição atual da reprodução. A linha do tempo geral mostra a forma de onda e o trecho de todos os momentos.
-- **Ouvir e baixar o trecho**: “Ouvir trecho” toca só o intervalo e para no fim. **“Baixar trecho”** baixa apenas aquele momento, em WAV (veja as limitações).
-- **Lista de momentos** em ordem cronológica (pelo início do trecho), com nome (obrigatório), observação (opcional), início/fim/duração do trecho e as ações ouvir trecho, recortar (ajustar) trecho, baixar trecho, editar e excluir (com confirmação, separada das demais ações). Clicar no título ou na observação edita o texto ali mesmo (Enter/Ctrl+Enter salva, Esc cancela). Com 3 ou mais momentos aparece a busca **“Buscar nos momentos...”**, que filtra por título e observação em tempo real (sem diferenciar acentos e maiúsculas).
-- **Layout em dois modos**: sem áudio, o gravador ocupa o painel principal, com **“Iniciar gravação”** e uma área para **arrastar ou escolher um arquivo de áudio** (.mp3, .wav, .m4a… ou o .zip exportado); o card de reprodução fica oculto. Com áudio, o gravador vira um cabeçalho compacto (nome, origem e duração, **Nova gravação** e **Descartar**) e o player sobe, com o botão **“Marcar momento importante”** junto aos controles. No desktop, as duas colunas ficam fixas abaixo do cabeçalho e a lista de momentos rola dentro do próprio painel.
+- **Ouvir e baixar o trecho**: “Ouvir trecho” toca só o intervalo e para no fim. **“Baixar trecho”** baixa apenas aquele momento, em WAV (veja as [limitações](#limitações-conhecidas)).
 - **Player**: tocar/pausar, voltar/avançar 10 s, barra de progresso navegável, tempo atual/duração e velocidade de reprodução.
+
+### Lista de momentos
+
+- Momentos em ordem cronológica (pelo início do trecho), com nome (obrigatório), observação (opcional), início/fim/duração do trecho e as ações ouvir trecho, recortar (ajustar) trecho, baixar trecho, editar e excluir (com confirmação, separada das demais ações).
+- Clicar no título ou na observação edita o texto ali mesmo (Enter/Ctrl+Enter salva, Esc cancela).
+- Com 3 ou mais momentos aparece a busca **“Buscar nos momentos...”**, que filtra por título e observação em tempo real (sem diferenciar acentos e maiúsculas).
+
+### Projeto: importar, exportar e salvar
+
 - **Importar projeto**: áudio obrigatório (WAV, MP3, M4A, WebM, OGG, FLAC, AAC), JSON opcional, ou diretamente o `.zip` exportado pela aplicação. Tudo é validado antes de carregar, e a substituição de um projeto aberto pede confirmação.
 - **Exportar projeto**:
   - com marcações, gera um `.zip` com o áudio original (bytes copiados sem recompressão) e `momentos-importantes.json`;
   - sem marcações, baixa **somente o áudio**, no formato original (sem ZIP nem JSON vazio).
 - **Nome do projeto**, usado na interface e nos arquivos (convertido para um nome de arquivo seguro). O padrão é `gravacao-AAAA-MM-DD`.
-- Tema claro/escuro com botão de alternância no canto superior direito (a escolha fica salva no navegador; sem escolha, segue o sistema). A versão da plataforma aparece ao lado do nome.
 - **Salvamento automático no navegador (IndexedDB)**: o áudio bruto (Blob, sem Base64) e o JSON do projeto (nome e marcações) são salvos automaticamente e restaurados ao reabrir a página. Edições de texto e o arraste das alças são salvos com debounce de 300 ms. **Descartar** apaga também o projeto salvo.
+
+### Interface e uso offline
+
+- **Layout em dois modos**: sem áudio, o gravador ocupa o painel principal, com **“Iniciar gravação”** e uma área para **arrastar ou escolher um arquivo de áudio** (.mp3, .wav, .m4a… ou o .zip exportado); o card de reprodução fica oculto. Com áudio, o gravador vira um cabeçalho compacto (nome, origem e duração, **Nova gravação** e **Descartar**) e o player sobe, com o botão **“Marcar momento importante”** junto aos controles. No desktop, as duas colunas ficam fixas abaixo do cabeçalho e a lista de momentos rola dentro do próprio painel.
+- **Tema claro/escuro** com botão de alternância no canto superior direito (a escolha fica salva no navegador; sem escolha, segue o sistema). A versão da plataforma aparece ao lado do nome.
 - **Funciona sem internet (PWA)**: depois do primeiro acesso, o app fica guardado no navegador e abre mesmo offline. Pode ser **instalado** como aplicativo (botão “Instalar” no Chrome/Edge/Android, ou “Adicionar à Tela de Início” no iPhone). Versões novas aparecem como “Nova versão disponível”, e só são ativadas com o clique em “Atualizar” (nunca durante uma gravação). Veja [Uso offline (PWA)](#uso-offline-pwa).
 - Layout para celular (com barra fixa de marcação durante a gravação) e aviso antes de fechar a página durante uma gravação em andamento (ou, se o navegador não permitir o salvamento automático, com alterações não exportadas).
 
-## Requisitos
+## Roadmap
+
+O projeto evolui em versões pequenas e frequentes. O histórico completo está no [CHANGELOG.md](CHANGELOG.md).
+
+**Já disponível (1.0.0)**
+
+- [x] Gravação pelo microfone com pausa/retomada e medidor de nível
+- [x] Marcação de momentos com bloqueio anti-duplicação e atalho <kbd>M</kbd>
+- [x] Trechos ajustáveis na forma de onda, com reprodução e download em WAV
+- [x] Exportação e importação do projeto (`.zip` + JSON versionado)
+- [x] Tema claro/escuro (Tokyo Night) e layout responsivo
+- [x] Salvamento automático no navegador (IndexedDB)
+- [x] Busca e edição rápida na lista de momentos
+- [x] PWA: uso offline, instalação como app e aviso de nova versão
+
+**Próximos passos (versões 1.x)**
+
+- [ ] 🤖 **Integração com inteligência artificial** *(em planejamento)*: o objetivo é usar IA para tirar mais proveito das gravações. Algumas das possibilidades em estudo:
+  - transcrição do áudio e dos trechos marcados;
+  - resumo automático da conversa e de cada momento;
+  - sugestão de nomes e observações para os momentos;
+  - identificação de momentos importantes que não foram marcados.
+
+> [!NOTE]
+> Os recursos de IA ainda estão em definição, incluindo como e onde o processamento vai acontecer. A versão atual não usa IA nem envia dados para fora do navegador (veja [Privacidade e armazenamento](#privacidade-e-armazenamento)).
+
+## Começando
+
+### Requisitos
 
 - Node.js 20.19+ ou 22.12+ (testado com Node 26) e npm.
 - Navegador recente (Chrome, Edge, Firefox ou Safari).
 - A gravação exige **contexto seguro**: `http://localhost` durante o desenvolvimento ou **HTTPS** em produção.
 
-## Instalação e execução
+### Instalação e execução
 
 ```bash
-cd ~/Projects/audio-moments
+git clone git@github.com:joaovic-tech/audio-moments.git
+cd audio-moments
 npm install
 npm run dev
 ```
@@ -59,10 +172,6 @@ A aplicação é um Progressive Web App, configurado com [`vite-plugin-pwa`](htt
 - O registro e o botão “Instalar” ficam em [`src/hooks/usePwa.ts`](src/hooks/usePwa.ts). O botão só aparece quando o navegador permite instalar (evento `beforeinstallprompt`, no Chrome, Edge e Android).
 - Em `npm run dev` o service worker **não** é ativado, para não atrapalhar o desenvolvimento. Para testar o modo offline, use `npm run build && npm run preview`, abra <http://localhost:4173>, e no DevTools → Application → Service Workers marque “Offline” e recarregue a página.
 - Na Vercel não é preciso configurar nada: o `sw.js` é servido sem cache longo, então as versões novas são detectadas no próximo acesso com internet.
-
-## Versão
-
-O projeto segue o [Versionamento Semântico](https://semver.org/lang/pt-BR/). A versão atual fica no campo `version` do `package.json`, aparece na interface ao lado do nome e é injetada no build pelo `vite.config.ts`. O histórico e as regras de incremento estão no [CHANGELOG.md](CHANGELOG.md).
 
 ## Tema e cor principal
 
@@ -134,7 +243,7 @@ O ícone da aba (`public/favicon.svg`) e as cores da barra do navegador no celul
 
 ### Regras de validação na importação
 
-- JSON malformado, `version` diferente de `1` ou ausência de `recordingName`/`importantMoments` → o JSON é **rejeitado por inteiro** e nenhuma marcação é carregada. O áudio pode ser importado sozinho.
+- JSON malformado, `version` diferente de `1` e `2` ou ausência de `recordingName`/`importantMoments` → o JSON é **rejeitado por inteiro** e nenhuma marcação é carregada. O áudio pode ser importado sozinho.
 - Marcações individuais sem nome ou com `timeSeconds` inválido → são **ignoradas**, e cada uma é relatada nos avisos.
 - Marcações além da duração do áudio → são **ignoradas** e relatadas. Até 0,5 s além do fim, são ajustadas para o último instante.
 - Trechos ausentes (arquivos da versão 1) ou inválidos (início ≥ fim, valores não numéricos) → recebem o trecho padrão de ±2 s. Trechos que passam do fim do áudio são cortados no fim, com aviso.
@@ -198,7 +307,7 @@ Stack: React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui (Radix), Lucide Re
 ## Privacidade e armazenamento
 
 - O microfone só é acessado depois de um clique em “Iniciar gravação” e da permissão do navegador. Ele é liberado ao finalizar ou descartar.
-- Nenhum dado sai do navegador. Não há transcrição, reconhecimento de fala nem serviços de terceiros.
+- Na versão atual, nenhum dado sai do navegador. Não há transcrição, reconhecimento de fala nem serviços de terceiros. Os recursos de IA previstos no [Roadmap](#roadmap) ainda estão em definição.
 - O service worker guarda apenas os arquivos da própria aplicação (código, estilos, fontes e ícones), nunca áudios ou marcações.
 - **Salvamento automático local**: o projeto atual (áudio e marcações) fica salvo no IndexedDB deste navegador e é restaurado ao reabrir a página. Ele não sai do dispositivo e some ao limpar os dados do site, em janelas anônimas ou se o navegador liberar espaço. Exporte o .zip para fazer backup ou transferir o projeto.
 - Apenas **um projeto** é guardado por navegador; abas abertas ao mesmo tempo salvam no mesmo registro (vale a última alteração).
@@ -209,7 +318,6 @@ Stack: React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui (Radix), Lucide Re
 - **Trechos são baixados em WAV** (PCM 16 bits, 48 kHz, até 2 canais). Cortar WebM/Opus, MP3 ou AAC com precisão exige recodificar, então o trecho é decodificado e salvo sem compressão adicional. Por isso o arquivo fica maior (cerca de 5,6 MB por minuto em mono). Para recortar, o áudio inteiro é decodificado na memória, o que pode ser lento em gravações muito longas no celular.
 - A forma de onda não é calculada para áudios acima de 150 MB ou de 2 horas (a linha do tempo continua funcionando sem ela).
 - Durante a gravação a duração final ainda é desconhecida: o trecho padrão é ajustado ao finalizar, e o editor de trechos só fica disponível depois disso.
-
 - O formato da gravação depende do navegador: WebM/Opus (Chrome, Edge, Firefox recente), OGG (Firefox antigo) ou MP4/AAC (Safari). O áudio é exportado no formato em que foi gravado ou importado; **não há conversão** (por exemplo, para MP3).
 - Arquivos WebM gravados pelo navegador não trazem a duração no cabeçalho. A aplicação a calcula ao carregar, mas alguns players externos podem mostrar a duração incorreta ou demorar para avançar no arquivo.
 - A precisão das marcações durante a gravação é a do cronômetro do navegador (diferenças de poucos centésimos de segundo em relação ao arquivo final). Marcações que ficariam além do fim real são ajustadas para o último instante.
@@ -217,3 +325,15 @@ Stack: React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui (Radix), Lucide Re
 - A gravação em segundo plano (aba oculta ou tela bloqueada) depende do sistema operacional. A aplicação pede para manter a tela ligada (Wake Lock) enquanto grava, quando o navegador permite.
 - **Uso offline** exige um primeiro acesso com internet (para guardar o app no navegador). No iPhone/iPad, o Safari pode apagar os dados de sites que não são abertos há algumas semanas, incluindo o app guardado e o projeto salvo: instalar na Tela de Início reduz esse risco, mas exporte o .zip para backup.
 - Formatos que o navegador não decodifica (por exemplo, FLAC em alguns Safari) são recusados na importação com uma mensagem explicando o motivo.
+
+## Versão e changelog
+
+O projeto segue o [Versionamento Semântico](https://semver.org/lang/pt-BR/). A versão atual fica no campo `version` do `package.json`, aparece na interface ao lado do nome e é injetada no build pelo `vite.config.ts`. A partir da `1.0.0`, mudanças incompatíveis no formato dos arquivos só acontecem em uma nova versão MAJOR (`2.0.0`). O histórico e as regras de incremento estão no [CHANGELOG.md](CHANGELOG.md).
+
+---
+
+<div align="center">
+
+<sub>Feito com 💚 by <a href="https://github.com/joaovic-tech"><strong>joaovic-tech</strong></a> · <a href="https://joaovic-tech.com">joaovic-tech.com</a></sub>
+
+</div>

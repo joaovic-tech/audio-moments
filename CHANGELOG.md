@@ -8,13 +8,17 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e
 
 A versão tem o formato `MAJOR.MINOR.PATCH` e fica no campo `version` do [`package.json`](package.json). A interface a exibe ao lado do nome da plataforma.
 
-- O projeto está em **desenvolvimento inicial (`0.y.z`)**: a API pública e o formato dos arquivos ainda podem mudar. A versão `1.0.0` marcará a primeira versão estável.
-- Cada commit `feat:` (nova funcionalidade) incrementa o **MINOR** (`0.2.0` → `0.3.0`).
-- Cada commit `fix:` (correção compatível) incrementa o **PATCH** (`0.2.0` → `0.2.1`).
-- Uma mudança incompatível (por exemplo, deixar de importar um formato de JSON antigo) incrementa o **MAJOR** a partir da `1.0.0`. Enquanto o projeto estiver em `0.y.z`, ela incrementa o MINOR.
+- Desde a `1.0.0` o projeto é **estável**: o formato dos arquivos exportados (JSON versão 2 dentro do `.zip`) e o projeto salvo no navegador continuam sendo lidos em todas as versões `1.x`.
+- Cada commit `feat:` (nova funcionalidade compatível) incrementa o **MINOR** (`1.0.0` → `1.1.0`).
+- Cada commit `fix:` (correção compatível) incrementa o **PATCH** (`1.0.0` → `1.0.1`).
+- Uma mudança incompatível (por exemplo, deixar de importar um formato de JSON antigo) incrementa o **MAJOR** (`1.x` → `2.0.0`). Novos campos opcionais no JSON (como os previstos para a IA) não são incompatíveis.
 - Cada versão publicada recebe uma tag `vX.Y.Z` no commit correspondente.
 
 ## [Não lançado]
+
+## [1.0.0] - 2026-10-20
+
+Primeira versão estável. O formato JSON versão 2 passa a ser considerado estável, e a integração com IA chegará em versões `1.x` sem quebrar os arquivos existentes.
 
 ### Adicionado
 
@@ -25,6 +29,7 @@ A versão tem o formato `MAJOR.MINOR.PATCH` e fica no campo `version` do [`packa
 ### Alterado
 
 - "Marcar momento importante" (e a tecla M) só registra o instante: não abre mais o formulário nem coloca o foco no campo de nome. No celular, o foco abria o teclado e rolava a tela, atrapalhando quem está entrevistando. Nome e observação são preenchidos depois, direto na lista; momentos ainda sem nome aparecem com o selo discreto "Nome pendente".
+- README reescrito: capa, badges, sumário, destaques, funcionalidades por área e roadmap com a integração com IA.
 
 ## [0.4.0] - 2026-10-19
 
@@ -90,7 +95,8 @@ Commit `e1b8979`. Primeira versão.
 - Importação de áudio com JSON opcional (ou do ZIP exportado), com validação.
 - Exportação em ZIP (áudio + JSON) ou somente do áudio, quando não há marcações.
 
-[Não lançado]: https://github.com/joaovic-tech/audio-moments/compare/v0.4.0...HEAD
+[Não lançado]: https://github.com/joaovic-tech/audio-moments/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/joaovic-tech/audio-moments/compare/v0.4.0...v1.0.0
 [0.4.0]: https://github.com/joaovic-tech/audio-moments/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/joaovic-tech/audio-moments/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/joaovic-tech/audio-moments/compare/v0.1.0...v0.2.0
